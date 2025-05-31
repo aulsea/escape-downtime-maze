@@ -3,9 +3,9 @@ class MazeGame {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.mazeSize = 15;
-        this.cellSize = 60;  // Significantly increased base cell size
-        this.wallThickness = 8;  // Thicker walls
-        this.playerSize = 16;  // Larger player
+        this.cellSize = 50;  // Reset to original size
+        this.wallThickness = 6;  // Reset to original size
+        this.playerSize = 12;  // Reset to original size
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
@@ -71,21 +71,37 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         
-        // Force a minimum size for tablets
-        const minSize = Math.max(window.innerWidth * 0.9, 600);
-        container.style.width = minSize + 'px';
-        container.style.height = minSize + 'px';
+        // Detect if we're on a touch device
+        const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         
-        const containerWidth = minSize;
-        const containerHeight = minSize;
+        // Calculate container size based on device type
+        let containerSize;
+        if (isTouch) {
+            // For touch devices, use larger size
+            containerSize = Math.max(window.innerWidth * 0.9, 600);
+            container.style.width = containerSize + 'px';
+            container.style.height = containerSize + 'px';
+        } else {
+            // For desktop, use more moderate size
+            containerSize = Math.min(window.innerHeight * 0.8, window.innerWidth * 0.7);
+            container.style.width = containerSize + 'px';
+            container.style.height = containerSize + 'px';
+        }
 
-        // Calculate cell size to fit the container
-        const cellSize = Math.floor((Math.min(containerWidth, containerHeight) - 40) / this.mazeSize);
-        this.cellSize = Math.max(60, cellSize); // Ensure minimum cell size of 60px
+        // Calculate cell size based on device type
+        const baseCellSize = Math.floor((containerSize - 40) / this.mazeSize);
+        this.cellSize = isTouch ? 
+            Math.max(60, baseCellSize) : // Larger for touch
+            Math.max(45, Math.min(baseCellSize, 55)); // Moderate for desktop
         
-        // Scale other dimensions based on cell size
-        this.wallThickness = Math.max(8, Math.floor(this.cellSize * 0.15));
-        this.playerSize = Math.max(16, Math.floor(this.cellSize * 0.3));
+        // Scale other dimensions based on cell size and device type
+        this.wallThickness = isTouch ?
+            Math.max(8, Math.floor(this.cellSize * 0.15)) :
+            Math.max(6, Math.floor(this.cellSize * 0.12));
+            
+        this.playerSize = isTouch ?
+            Math.max(16, Math.floor(this.cellSize * 0.3)) :
+            Math.max(12, Math.floor(this.cellSize * 0.24));
 
         // Calculate the total maze size including padding
         const totalMazeSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 4);
@@ -110,8 +126,10 @@ class MazeGame {
             y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
         };
         
-        // Scale UI elements based on cell size
-        this.buttonScale = Math.max(1.5, this.cellSize / 40); // Increased minimum scale
+        // Scale UI elements based on device type
+        this.buttonScale = isTouch ? 
+            Math.max(1.5, this.cellSize / 40) : // Larger for touch
+            Math.max(1, this.cellSize / 45); // Original size for desktop
         
         if (this.playerPos) {
             this.resetPlayerPosition();
