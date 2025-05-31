@@ -41,7 +41,7 @@ class MazeGame {
         this.isGameComplete = false;
         this.isGameOver = false;
         this.showGameOverScreen = false;
-        this.showSuccessScreen = false;
+        this.showSuccessScreen = false; // Add success screen flag
         this.canMove = false;
         this.lastTime = performance.now();
         
@@ -61,6 +61,9 @@ class MazeGame {
         window.addEventListener('resize', () => {
             this.setupCanvasSize();
         });
+
+        // Show welcome modal initially
+        this.showWelcomeModal();
 
         this.finishPattern = this.createFinishPattern();
     }
@@ -138,7 +141,7 @@ class MazeGame {
             }
         }
 
-        // Create paths using recursive backtracking
+        // Create initial paths using recursive backtracking
         const stack = [[1, 1]];
         this.maze[1][1] = 0;
         
@@ -147,11 +150,25 @@ class MazeGame {
             [2, 0], [-2, 0], [0, 2], [0, -2]
         ];
 
+        // Track the solution path
+        let solutionPath = new Set();
+        
         while (stack.length > 0) {
-            const [x, y] = stack[stack.length - 1];
+            const current = stack[stack.length - 1];
+            const [x, y] = current;
             
-            // Shuffle directions randomly
-            const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
+            // Bias towards moving right and down (towards end)
+            const shuffledDirections = [...directions].sort(() => {
+                const rightDownBias = (dx, dy) => {
+                    let bias = 0;
+                    if (dx > 0) bias += 0.2; // Bias right
+                    if (dy > 0) bias += 0.2; // Bias down
+                    return bias;
+                };
+                const [dx1, dy1] = directions[0];
+                const [dx2, dy2] = directions[1];
+                return rightDownBias(dx2, dy2) - rightDownBias(dx1, dy1) + (Math.random() * 0.6 - 0.3);
+            });
             
             let foundPath = false;
             for (const [dx, dy] of shuffledDirections) {
@@ -175,44 +192,107 @@ class MazeGame {
             }
         }
 
-        // Add a few strategic shortcuts (much fewer than before)
-        const numShortcuts = Math.floor(this.mazeSize * 0.4); // Reduced number of shortcuts
-        let shortcutsAdded = 0;
-        
-        while (shortcutsAdded < numShortcuts) {
-            const x = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
-            const y = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
+        // Find the solution path using A* algorithm
+        const findPath = () => {
+            const start = [1, 1];
+            const end = [this.mazeSize - 2, this.mazeSize - 2];
             
-            if (this.maze[y][x] === 1) {
-                // Count adjacent paths
-                let pathCount = 0;
-                for (const [dx, dy] of directions) {
-                    const checkX = x + dx/2;
-                    const checkY = y + dy/2;
-                    if (checkX > 0 && checkX < this.mazeSize - 1 &&
-                        checkY > 0 && checkY < this.mazeSize - 1 &&
-                        this.maze[checkY][checkX] === 0) {
-                        pathCount++;
+            const heuristic = (x, y) => {
+                return Math.abs(x - end[0]) + Math.abs(y - end[1]);
+            };
+            
+            const openSet = new Set([start.join(',')]);
+            const cameFrom = new Map();
+            const gScore = new Map([[start.join(','), 0]]);
+            const fScore = new Map([[start.join(','), heuristic(start[0], start[1])]]);
+            
+            while (openSet.size > 0) {
+                let current = null;
+                let lowestFScore = Infinity;
+                
+                for (const pos of openSet) {
+                    const score = fScore.get(pos) || Infinity;
+                    if (score < lowestFScore) {
+                        lowestFScore = score;
+                        current = pos;
                     }
                 }
                 
-                // Only create a shortcut if it connects existing paths
-                if (pathCount >= 2) {
-                this.maze[y][x] = 0;
-                    shortcutsAdded++;
+                const [x, y] = current.split(',').map(Number);
+                
+                if (x === end[0] && y === end[1]) {
+                    // Reconstruct path
+                    const path = new Set([current]);
+                    let currentPos = current;
+                    while (cameFrom.has(currentPos)) {
+                        currentPos = cameFrom.get(currentPos);
+                        path.add(currentPos);
+                    }
+                    return path;
+                }
+                
+                openSet.delete(current);
+                
+                for (const [dx, dy] of [[1,0], [-1,0], [0,1], [0,-1]]) {
+                    const newX = x + dx;
+                    const newY = y + dy;
+                    const neighbor = [newX, newY].join(',');
+                    
+                    if (newX > 0 && newX < this.mazeSize - 1 &&
+                        newY > 0 && newY < this.mazeSize - 1 &&
+                        this.maze[newY][newX] === 0) {
+                        
+                        const tentativeGScore = (gScore.get(current) || 0) + 1;
+                        
+                        if (tentativeGScore < (gScore.get(neighbor) || Infinity)) {
+                            cameFrom.set(neighbor, current);
+                            gScore.set(neighbor, tentativeGScore);
+                            fScore.set(neighbor, tentativeGScore + heuristic(newX, newY));
+                            openSet.add(neighbor);
+                        }
+                    }
+                }
+            }
+            
+            return new Set(); // No path found
+        };
+        
+        // Get the solution path
+        solutionPath = findPath();
+        
+        // Fill in all non-solution paths
+        for (let y = 0; y < this.mazeSize; y++) {
+            for (let x = 0; x < this.mazeSize; x++) {
+                if (this.maze[y][x] === 0 && !solutionPath.has([x,y].join(','))) {
+                    // Check if this is part of the start or end area
+                    const isStartArea = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1);
+                    const isEndArea = (x === this.mazeSize - 2 && y === this.mazeSize - 2);
+                    
+                    // Only fill if not part of start/end area
+                    if (!isStartArea && !isEndArea) {
+                        // Randomly decide whether to fill this path
+                        if (Math.random() < 0.85) { // 85% chance to fill non-solution paths
+                            this.maze[y][x] = 1;
+                        }
+                    }
                 }
             }
         }
 
-        // Ensure start area is clear
+        // Ensure start and end areas are clear
         this.maze[1][1] = 0;
         this.maze[1][2] = 0;
         this.maze[2][1] = 0;
-
-        // Ensure end area is clear and has limited approach paths
         this.maze[this.mazeSize - 2][this.mazeSize - 2] = 0;
-        this.maze[this.mazeSize - 3][this.mazeSize - 2] = 0;
-        this.maze[this.mazeSize - 2][this.mazeSize - 3] = 0;
+        
+        // Add a single approach to the end
+        if (Math.random() < 0.5) {
+            this.maze[this.mazeSize - 3][this.mazeSize - 2] = 0;
+            this.maze[this.mazeSize - 2][this.mazeSize - 3] = 1;
+        } else {
+            this.maze[this.mazeSize - 2][this.mazeSize - 3] = 0;
+            this.maze[this.mazeSize - 3][this.mazeSize - 2] = 1;
+        }
     }
 
     checkWallCollision(x, y) {
@@ -361,34 +441,15 @@ class MazeGame {
             return distance <= this.playerSize * 2.5;
         };
 
-        const isClickOnButton = (pos) => {
-            if (!this.showGameOverScreen && !this.showSuccessScreen) return false;
-
-            // Calculate scaled button dimensions
-            const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
-            const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
-            const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-            const buttonY = this.canvas.height / 2 - buttonHeight / 2;
-
-            return pos.x >= buttonX && 
-                   pos.x <= buttonX + buttonWidth && 
-                   pos.y >= buttonY && 
-                   pos.y <= buttonY + buttonHeight;
-        };
-
         const startDragging = (e) => {
             const pos = getCanvasPoint(e);
             
-            if (isClickOnButton(pos)) {
-                this.restart();
-                setTimeout(() => this.startGame(), 100);
-                return;
-            }
-            
-            if (this.canMove && this.gameStarted && !this.isGameComplete && !this.isGameOver && isClickOnPlayer(pos)) {
-                isDragging = true;
-                canStartDrag = true;
-                movePlayer(e);
+            if (this.canMove && this.gameStarted && !this.isGameComplete && !this.isGameOver) {
+                if (isClickOnPlayer(pos)) {
+                    isDragging = true;
+                    canStartDrag = true;
+                    movePlayer(e);
+                }
             }
         };
 
@@ -406,9 +467,12 @@ class MazeGame {
         };
 
         const stopDragging = () => {
-            isDragging = false;
-            canStartDrag = false;
-            this.targetPos = { ...this.playerPos };
+            if (isDragging) {
+                isDragging = false;
+                canStartDrag = false;
+                // Stop player movement by setting target to current position
+                this.targetPos = { ...this.playerPos };
+            }
         };
 
         // Touch events
@@ -423,11 +487,13 @@ class MazeGame {
         }, { passive: false });
 
         this.canvas.addEventListener('touchend', stopDragging);
+        this.canvas.addEventListener('touchcancel', stopDragging);
 
         // Mouse events
         this.canvas.addEventListener('mousedown', startDragging);
         this.canvas.addEventListener('mousemove', movePlayer);
         this.canvas.addEventListener('mouseup', stopDragging);
+        this.canvas.addEventListener('mouseleave', stopDragging);
     }
 
     setupWelcomeModal() {
@@ -457,14 +523,14 @@ class MazeGame {
         this.showSuccessScreen = false;
         this.canMove = false;
         
-        // Show Level 1 message first
-        this.showLevelMessage(1);
+        // Set initial target position to player position
+        this.targetPos = { ...this.startPosition };
         
-        // Enable movement after the level message
+        // Enable movement after a delay to prevent unwanted movement
         setTimeout(() => {
             this.resetPlayerPosition();
             this.canMove = true;
-        }, 1000);
+        }, 500);
     }
 
     resetPlayerPosition() {
@@ -491,10 +557,15 @@ class MazeGame {
         // Hide all modals
         this.hideModals();
 
-        // Reset to level 1
-        this.currentLevel = 1;
-        this.mazeSize = 15;
-        this.moveSpeed = 0.15;
+        // Keep current level if game over, reset to 1 if completing the game
+        if (!this.isGameComplete) {
+            // Keep the current level
+            this.generateMaze();
+        } else {
+            // Reset to level 1 only if completed successfully
+            this.currentLevel = 1;
+            this.generateMaze();
+        }
 
         // Reset game state
         this.canMove = false;
@@ -502,7 +573,6 @@ class MazeGame {
         this.isGameOver = false;
         this.isGameComplete = false;
         this.resetPlayerPosition();
-        this.generateMaze();
     }
 
     hideModals() {
@@ -529,7 +599,7 @@ class MazeGame {
             modalOverlay = document.createElement('div');
             modalOverlay.id = 'modalOverlay';
             modalOverlay.className = 'modal-overlay';
-            document.body.appendChild(modalOverlay);
+            document.getElementById('modal-container').appendChild(modalOverlay);
         }
 
         if (!gameOverModal) {
@@ -543,12 +613,18 @@ class MazeGame {
             const heading = document.createElement('h2');
             heading.textContent = 'Data did not survive';
             
+            const levelText = document.createElement('p');
+            levelText.textContent = `Level ${this.currentLevel}`;
+            levelText.style.color = '#9ab3f5';
+            levelText.style.marginBottom = '1rem';
+            
             const button = document.createElement('button');
             button.id = 'startOverButton';
             button.className = 'start-button';
-            button.textContent = 'Start Over';
+            button.textContent = 'Try Again';
             
             modalContent.appendChild(heading);
+            modalContent.appendChild(levelText);
             modalContent.appendChild(button);
             gameOverModal.appendChild(modalContent);
             document.getElementById('modal-container').appendChild(gameOverModal);
@@ -559,6 +635,20 @@ class MazeGame {
                 this.restart();
                 this.startGame();
             });
+        } else {
+            // Update existing modal text
+            const heading = gameOverModal.querySelector('h2');
+            const levelText = gameOverModal.querySelector('p');
+            if (heading) {
+                heading.textContent = 'Data did not survive';
+            }
+            if (levelText) {
+                levelText.textContent = `Level ${this.currentLevel}`;
+            }
+            const button = gameOverModal.querySelector('button');
+            if (button) {
+                button.textContent = 'Try Again';
+            }
         }
 
         // Show modal and overlay
@@ -685,7 +775,7 @@ class MazeGame {
                         this.ctx.moveTo(cellX, cellY + this.cellSize);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
-                    
+
                     // Draw vertical walls
                     if (x === 0 || this.maze[y][x-1] === 0) {
                         this.ctx.moveTo(cellX, cellY);
@@ -878,18 +968,6 @@ class MazeGame {
         requestAnimationFrame((time) => this.animate(time));
     }
 
-    showLevelMessage(level) {
-        const levelMsg = document.createElement('div');
-        levelMsg.className = 'modal';
-        levelMsg.style.padding = '2.5rem';
-        levelMsg.innerHTML = `<h2>Level ${level}</h2>`;
-        document.getElementById('modal-container').appendChild(levelMsg);
-        
-        setTimeout(() => {
-            document.getElementById('modal-container').removeChild(levelMsg);
-        }, 800);
-    }
-
     showSuccessModal() {
         const modal = document.getElementById('successModal');
         const overlay = document.getElementById('modalOverlay');
@@ -904,15 +982,27 @@ class MazeGame {
             this.generateMaze();
             this.resetPlayerPosition();
             
-            // Show Level 2 message
-            this.showLevelMessage(2);
+            // Create level 2 modal
+            let levelMsg = document.getElementById('level2Modal');
+            if (!levelMsg) {
+                levelMsg = document.createElement('div');
+                levelMsg.id = 'level2Modal';
+                levelMsg.className = 'modal';
+                levelMsg.innerHTML = '<h2>Level 2</h2>';
+                document.getElementById('modal-container').appendChild(levelMsg);
+            }
             
-            // Enable movement after the level message
+            // Show level 2 modal
+            document.getElementById('modalOverlay').style.display = 'block';
+            levelMsg.style.display = 'block';
+            
             setTimeout(() => {
+                levelMsg.style.display = 'none';
+                document.getElementById('modalOverlay').style.display = 'none';
                 this.gameStarted = true;
                 this.isGameComplete = false;
                 this.canMove = true;
-            }, 1000);
+            }, 800);
             
             return;
         }
@@ -935,7 +1025,7 @@ class MazeGame {
 
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
-            countdown.textContent = `Page will reload in ${timeLeft} seconds`;
+            countdown.textContent = `The game will restart in ${timeLeft} seconds`;
             timeLeft--;
 
             if (timeLeft < 0) {

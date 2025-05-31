@@ -114,13 +114,13 @@
 
         .modal {
             background: rgba(26, 26, 46, 0.98);
-            padding: 2.5rem;
+            padding: 3rem;
             border-radius: 20px;
             box-shadow: 0 0 40px rgba(74, 95, 193, 0.4);
             text-align: center;
             color: white;
             border: 3px solid #4a5fc1;
-            min-width: 300px;
+            min-width: 320px;
             max-width: 90vw;
             display: none;
             pointer-events: auto;
@@ -130,16 +130,15 @@
 
         .modal h2 {
             color: #9ab3f5;
-            margin: 0 0 1.5rem 0;
+            margin: 0 0 2rem 0;
             font-size: 1.8em;
             font-weight: 700;
         }
 
-        .modal-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
+        .modal p {
+            margin: 0 0 2rem 0;
+            line-height: 1.8;
+            font-size: 1.2em;
         }
 
         .start-button {
@@ -155,7 +154,7 @@
             font-family: inherit;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             min-width: 160px;
-            margin: 0;
+            margin-top: 1rem;
         }
 
         .start-button:hover {
@@ -212,8 +211,8 @@
             }
 
             .modal {
-                padding: 3rem;
-                min-width: 400px;
+                padding: 3.5rem;
+                min-width: 420px;
             }
 
             .modal h2 {
@@ -250,8 +249,8 @@
             }
 
             .modal {
-                padding: 2rem;
-                min-width: 280px;
+                padding: 2.5rem;
+                min-width: 300px;
                 max-width: 95vw;
             }
 
@@ -286,6 +285,12 @@
                 aspect-ratio: 1;
             }
         }
+
+        /* Highlighted terms */
+        .highlight {
+            color: #9ab3f5;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -309,7 +314,7 @@
         </div>
         <div class="modal welcome-modal" id="welcomeModal">
             <h2>Welcome!</h2>
-            <p>Complete the maze and get a free test of Disaster Recovery or Migration product</p>
+            <p>Complete the maze and get a free test of <span class="highlight">Disaster Recovery</span> or <span class="highlight">Migration</span> product</p>
             <button class="start-button" id="startButton">Start Game</button>
         </div>
     </div>
