@@ -71,37 +71,35 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         
-        // Detect if we're on a touch device
+        // Detect if we're on a tablet (larger touch screen)
+        const isTablet = ('ontouchstart' in window) && window.innerWidth >= 768;
         const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         
         // Calculate container size based on device type
         let containerSize;
-        if (isTouch) {
-            // For touch devices, use larger size
-            containerSize = Math.max(window.innerWidth * 0.9, 600);
-            container.style.width = containerSize + 'px';
-            container.style.height = containerSize + 'px';
+        if (isTablet) {
+            // For tablets, use larger size but maintain aspect ratio
+            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.8);
+            this.cellSize = 65; // Larger cells for tablets
+            this.wallThickness = 8;
+            this.playerSize = 18;
+        } else if (isTouch) {
+            // For phones, use full width approach
+            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.95);
+            this.cellSize = 55; // Medium cells for phones
+            this.wallThickness = 7;
+            this.playerSize = 16;
         } else {
-            // For desktop, use more moderate size
-            containerSize = Math.min(window.innerHeight * 0.8, window.innerWidth * 0.7);
-            container.style.width = containerSize + 'px';
-            container.style.height = containerSize + 'px';
+            // For desktop, use moderate size
+            containerSize = Math.min(window.innerHeight * 0.75, window.innerWidth * 0.6);
+            this.cellSize = 45; // Original size for desktop
+            this.wallThickness = 6;
+            this.playerSize = 12;
         }
 
-        // Calculate cell size based on device type
-        const baseCellSize = Math.floor((containerSize - 40) / this.mazeSize);
-        this.cellSize = isTouch ? 
-            Math.max(60, baseCellSize) : // Larger for touch
-            Math.max(45, Math.min(baseCellSize, 55)); // Moderate for desktop
-        
-        // Scale other dimensions based on cell size and device type
-        this.wallThickness = isTouch ?
-            Math.max(8, Math.floor(this.cellSize * 0.15)) :
-            Math.max(6, Math.floor(this.cellSize * 0.12));
-            
-        this.playerSize = isTouch ?
-            Math.max(16, Math.floor(this.cellSize * 0.3)) :
-            Math.max(12, Math.floor(this.cellSize * 0.24));
+        // Set container size
+        container.style.width = containerSize + 'px';
+        container.style.height = containerSize + 'px';
 
         // Calculate the total maze size including padding
         const totalMazeSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 4);
@@ -127,9 +125,7 @@ class MazeGame {
         };
         
         // Scale UI elements based on device type
-        this.buttonScale = isTouch ? 
-            Math.max(1.5, this.cellSize / 40) : // Larger for touch
-            Math.max(1, this.cellSize / 45); // Original size for desktop
+        this.buttonScale = isTablet ? 2 : (isTouch ? 1.5 : 1);
         
         if (this.playerPos) {
             this.resetPlayerPosition();
@@ -336,10 +332,11 @@ class MazeGame {
                     this.showSuccessModal();
                 }
             } else {
-                // If collision, stop movement and reset target to current position
+                // If collision, stop movement and show game over
                 this.targetPos = { ...this.playerPos };
                 this.isGameOver = true;
-                this.showGameOverScreen = true;
+                this.canMove = false;
+                this.drawGameOverScreen();
             }
         }
     }
@@ -491,13 +488,8 @@ class MazeGame {
             this.countdownInterval = null;
         }
 
-        // Hide all modals and overlay
-        const successModal = document.getElementById('successModal');
-        const welcomeModal = document.getElementById('welcomeModal');
-        const overlay = document.getElementById('modalOverlay');
-        successModal.style.display = 'none';
-        welcomeModal.style.display = 'none';
-        overlay.style.display = 'none';
+        // Hide all modals
+        this.hideModals();
 
         // Reset to level 1
         this.currentLevel = 1;
@@ -507,67 +499,71 @@ class MazeGame {
         // Reset game state
         this.canMove = false;
         this.gameStarted = false;
-            this.resetPlayerPosition();
+        this.isGameOver = false;
+        this.isGameComplete = false;
+        this.resetPlayerPosition();
         this.generateMaze();
     }
 
+    hideModals() {
+        // Hide all modals and overlay
+        const modals = document.querySelectorAll('.modal');
+        const overlay = document.getElementById('modalOverlay');
+        
+        modals.forEach(modal => {
+            modal.style.display = 'none';
+        });
+        
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+
     drawGameOverScreen() {
-        // Semi-transparent overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; // Darker overlay
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Scale text and button based on cell size
-        const fontSize = Math.max(32, Math.floor(32 * this.buttonScale));
-        const buttonWidth = Math.max(200, Math.floor(200 * this.buttonScale));
-        const buttonHeight = Math.max(80, Math.floor(80 * this.buttonScale));
-
-        // Position message and button with more space
-        const messageY = this.canvas.height / 2 - buttonHeight * 1.5;
-        const buttonY = messageY + buttonHeight * 1.5;
-
-        // Draw message
-        this.ctx.fillStyle = '#9ab3f5';
-        this.ctx.font = `bold ${fontSize}px Inter`;
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Keep trying!', this.canvas.width / 2, messageY);
-
-        // Draw "Play Again" button with consistent styling
-        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
+        // Create game over modal if it doesn't exist
+        let gameOverModal = document.getElementById('gameOverModal');
+        let modalOverlay = document.getElementById('modalOverlay');
         
-        // Enhanced button shadow
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowOffsetY = 6;
-        
-        // Button background with gradient
-        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');
-        gradient.addColorStop(1, '#3d4fa3');
-        
-        // Draw button background
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
-        this.ctx.fill();
-        
-        // Reset shadow
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetY = 0;
-        
-        // Draw button text
-        const buttonFontSize = Math.max(28, Math.floor(28 * this.buttonScale));
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = `bold ${buttonFontSize}px Inter`;
-        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + buttonFontSize/3);
+        // Create overlay if it doesn't exist
+        if (!modalOverlay) {
+            modalOverlay = document.createElement('div');
+            modalOverlay.id = 'modalOverlay';
+            modalOverlay.className = 'modal-overlay';
+            document.body.appendChild(modalOverlay);
+        }
 
-        // Store button position for hit detection
-        this.playAgainButton = {
-            x: buttonX,
-            y: buttonY,
-            width: buttonWidth,
-            height: buttonHeight
-        };
+        if (!gameOverModal) {
+            gameOverModal = document.createElement('div');
+            gameOverModal.id = 'gameOverModal';
+            gameOverModal.className = 'modal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            
+            const heading = document.createElement('h2');
+            heading.textContent = 'Game Over';
+            
+            const button = document.createElement('button');
+            button.id = 'startOverButton';
+            button.className = 'start-button';
+            button.textContent = 'Start Over';
+            
+            modalContent.appendChild(heading);
+            modalContent.appendChild(button);
+            gameOverModal.appendChild(modalContent);
+            document.body.appendChild(gameOverModal);
+
+            // Add event listener to the button
+            button.addEventListener('click', () => {
+                this.hideModals();
+                this.restart();
+                this.startGame();
+            });
+        }
+
+        // Show modal and overlay
+        modalOverlay.style.display = 'block';
+        gameOverModal.style.display = 'block';
     }
 
     drawSuccessScreen() {
@@ -891,41 +887,23 @@ class MazeGame {
         // If this is level 1, proceed to level 2
         if (this.currentLevel === 1) {
             this.currentLevel = 2;
-            
-            // Disable movement during transition
             this.canMove = false;
             this.gameStarted = false;
-            
-            // Generate new maze and reset position first
             this.generateMaze();
             this.resetPlayerPosition();
             
-            // Short delay to ensure maze is drawn
+            const levelMsg = document.createElement('div');
+            levelMsg.className = 'modal';
+            levelMsg.style.padding = '2rem';
+            levelMsg.innerHTML = '<h2>Level 2</h2>';
+            document.body.appendChild(levelMsg);
+            
             setTimeout(() => {
-                // Show level 2 message
-                const levelMsg = document.createElement('div');
-                levelMsg.style.position = 'fixed';
-                levelMsg.style.top = '50%';
-                levelMsg.style.left = '50%';
-                levelMsg.style.transform = 'translate(-50%, -50%)';
-                levelMsg.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
-                levelMsg.style.color = 'white';
-                levelMsg.style.padding = '20px';
-                levelMsg.style.borderRadius = '10px';
-                levelMsg.style.textAlign = 'center';
-                levelMsg.style.zIndex = '1000';
-                levelMsg.style.border = '2px solid #4a5fc1';
-                levelMsg.innerHTML = '<h2>Level 2</h2>';
-                document.body.appendChild(levelMsg);
-                
-                // Remove message and enable movement after short delay
-                setTimeout(() => {
-                    document.body.removeChild(levelMsg);
-                    this.gameStarted = true;
-                    this.isGameComplete = false;
-                    this.canMove = true;
-                }, 800);
-            }, 100);
+                document.body.removeChild(levelMsg);
+                this.gameStarted = true;
+                this.isGameComplete = false;
+                this.canMove = true;
+            }, 800);
             
             return;
         }

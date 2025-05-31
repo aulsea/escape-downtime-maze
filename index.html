@@ -19,6 +19,7 @@
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             touch-action: none;
             overflow: hidden;
+            position: relative;
         }
 
         .game-container {
@@ -34,6 +35,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
+            z-index: 1;
         }
 
         h1 {
@@ -75,83 +78,49 @@
             display: block;
         }
 
-        .success-modal, .welcome-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(26, 26, 46, 0.95);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 0 40px rgba(74, 95, 193, 0.4);
-            text-align: center;
-            color: white;
-            z-index: 1000;
-            animation: modalAppear 0.3s ease-out;
-            border: 3px solid #4a5fc1;
-            min-width: 300px;
-            max-width: 90%;
-        }
-
-        .success-modal h2, .welcome-modal h2 {
-            color: #9ab3f5;
-            margin-bottom: 1.5rem;
-            font-size: 1.8em;
-        }
-
-        .success-modal p, .welcome-modal p {
-            margin: 1.5rem 0;
-            line-height: 1.6;
-            font-size: 1.2em;
-        }
-
-        .promo-code {
-            background: #4a5fc1;
-            padding: 1rem 1.8rem;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 1.4em;
-            letter-spacing: 0.1em;
-            margin: 1.5rem 0;
-            display: inline-block;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .countdown {
-            font-size: 1.1em;
-            color: #9ab3f5;
-            margin-top: 1.5rem;
-        }
-
+        /* Modal styles */
         .modal-overlay {
-            display: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 999;
-            animation: fadeIn 0.3s ease-out;
+            z-index: 9998;
+            display: none;
         }
 
-        @keyframes modalAppear {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -60%);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%);
-            }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 26, 46, 0.98);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(74, 95, 193, 0.4);
+            text-align: center;
+            color: white;
+            z-index: 9999;
+            display: none;
+            border: 3px solid #4a5fc1;
+            min-width: 300px;
+            max-width: 90vw;
+            width: auto;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .modal h2 {
+            color: #9ab3f5;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .modal-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
         }
 
         .start-button {
@@ -164,8 +133,10 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: inherit;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            min-width: 160px;
+            margin: 0;
         }
 
         .start-button:hover {
@@ -179,14 +150,42 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
-        /* Touch device styles */
-        @media (hover: none) and (pointer: coarse) {
+        /* Success modal specific styles */
+        .success-modal p {
+            margin: 1rem 0;
+            line-height: 1.6;
+            font-size: 1.2em;
+        }
+
+        .promo-code {
+            background: #4a5fc1;
+            padding: 1rem 1.8rem;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 1.4em;
+            letter-spacing: 0.1em;
+            margin: 1rem 0;
+            display: inline-block;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .countdown {
+            font-size: 1.1em;
+            color: #9ab3f5;
+            margin-top: 1rem;
+        }
+
+        /* Tablet styles */
+        @media (min-width: 768px) and (max-width: 1024px) {
             .game-container {
                 padding: 2rem;
+                max-width: 95%;
             }
 
             h1 {
-                font-size: 3em;
+                font-size: 2.8em;
             }
 
             #maze-container {
@@ -195,31 +194,24 @@
                 width: 95%;
             }
 
-            .success-modal, .welcome-modal {
+            .modal {
                 padding: 3rem;
+                min-width: 400px;
             }
 
-            .success-modal h2, .welcome-modal h2 {
-                font-size: 2em;
-            }
-
-            .success-modal p, .welcome-modal p {
-                font-size: 1.3em;
-            }
-
-            .promo-code {
-                font-size: 1.6em;
-                padding: 1.2rem 2rem;
+            .modal h2 {
+                font-size: 2.2em;
             }
 
             .start-button {
                 padding: 1.2rem 2.5rem;
                 font-size: 1.4em;
+                min-width: 200px;
             }
         }
 
-        /* Small screen adjustments */
-        @media (max-width: 768px) {
+        /* Phone styles */
+        @media (max-width: 767px) {
             body {
                 padding: 10px;
             }
@@ -241,27 +233,41 @@
                 width: 95%;
             }
 
-            .success-modal, .welcome-modal {
+            .modal {
                 padding: 2rem;
                 min-width: 280px;
+                max-width: 95vw;
             }
 
-            .success-modal h2, .welcome-modal h2 {
+            .modal h2 {
                 font-size: 1.6em;
-            }
-
-            .success-modal p, .welcome-modal p {
-                font-size: 1.1em;
-            }
-
-            .promo-code {
-                font-size: 1.3em;
-                padding: 0.8rem 1.5rem;
+                margin-bottom: 1rem;
             }
 
             .start-button {
                 padding: 0.8rem 1.8rem;
                 font-size: 1.2em;
+                min-width: 140px;
+            }
+        }
+
+        /* Landscape orientation adjustments */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .game-container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2em;
+                margin: 0.2em 0;
+            }
+
+            #maze-container {
+                padding: 10px;
+                margin: 10px auto;
+                height: 80vh;
+                width: auto;
+                aspect-ratio: 1;
             }
         }
     </style>
@@ -280,7 +286,7 @@
         <p>Your promo code:</p>
         <div class="promo-code">mobitmigrate</div>
         <div class="countdown" id="countdown"></div>
-        </div>
+    </div>
     <div class="welcome-modal" id="welcomeModal">
         <h2>Welcome!</h2>
         <p>Complete the maze and get a free test of Disaster Recovery or Migration product</p>
