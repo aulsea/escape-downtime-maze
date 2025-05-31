@@ -30,6 +30,7 @@
             width: 95%;
             max-width: 800px;
             margin: 10px auto;
+            box-sizing: border-box;
         }
 
         h1 {
@@ -53,12 +54,12 @@
             background-color: #4a5fc1;
             padding: 10px;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 10px auto;
             position: relative;
             aspect-ratio: 1;
             width: 100%;
-            max-width: 700px;
-            margin: 0 auto;
+            max-width: 600px;
+            box-sizing: border-box;
         }
 
         canvas {
@@ -67,6 +68,7 @@
             touch-action: none;
             width: 100%;
             height: 100%;
+            display: block;
         }
 
         .success-modal {
@@ -193,31 +195,49 @@
             background: #5b6fd2;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
             .game-container {
                 padding: 0.5rem;
+                margin: 5px auto;
+                width: 98%;
+            }
+
+            #maze-container {
+                padding: 5px;
+                margin: 5px auto;
+                max-width: 90vmin;
             }
 
             h1 {
                 font-size: 1.5em;
+                margin: 0.3em 0;
             }
 
             .subtitle {
-                font-size: 1em;
+                font-size: 0.9em;
+                margin-bottom: 1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 0.3rem;
             }
 
-            .success-modal {
-                width: 85%;
-                padding: 1.5rem;
+            h1 {
+                font-size: 1.2em;
             }
 
-            .welcome-modal {
-                width: 85%;
-                padding: 1.5rem;
+            .subtitle {
+                font-size: 0.8em;
             }
 
-            .welcome-modal p {
-                font-size: 1em;
+            #maze-container {
+                padding: 3px;
             }
         }
     </style>
