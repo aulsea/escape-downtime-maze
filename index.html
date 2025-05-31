@@ -18,20 +18,18 @@
             background-color: #1a1a2e;
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             touch-action: none;
-            overflow: hidden;
         }
 
         .game-container {
             background-color: #1a1a2e;
-            padding: 0.5rem;
+            padding: 1rem;
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
             text-align: center;
             color: white;
             width: 95%;
-            max-width: 450px;
-            margin: 5px auto;
-            box-sizing: border-box;
+            max-width: 800px;
+            margin: 10px auto;
         }
 
         h1 {
@@ -53,17 +51,14 @@
 
         #maze-container {
             background-color: #4a5fc1;
-            padding: 5px;
+            padding: 10px;
             border-radius: 10px;
-            margin: 5px auto;
+            margin: 10px 0;
             position: relative;
             aspect-ratio: 1;
             width: 100%;
-            max-width: 400px;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            max-width: 700px;
+            margin: 0 auto;
         }
 
         canvas {
@@ -72,8 +67,6 @@
             touch-action: none;
             width: 100%;
             height: 100%;
-            display: block;
-            object-fit: contain;
         }
 
         .success-modal {
@@ -200,59 +193,31 @@
             background: #5b6fd2;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 0;
-                height: 100vh;
-                height: -webkit-fill-available;
-            }
-
+        @media (max-width: 480px) {
             .game-container {
-                padding: 0.3rem;
-                margin: 0 auto;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                border-radius: 0;
+                padding: 0.5rem;
             }
 
             h1 {
-                font-size: 1.2em;
-                margin: 0.2em 0;
+                font-size: 1.5em;
             }
 
             .subtitle {
-                font-size: 0.8em;
-                margin: 0.5em 0;
-            }
-
-            #maze-container {
-                padding: 3px;
-                margin: 3px auto;
-                width: 95vmin;
-                height: 95vmin;
-                max-width: none;
-                flex-grow: 0;
-                flex-shrink: 0;
-            }
-        }
-
-        @media (max-height: 600px) {
-            h1 {
                 font-size: 1em;
-                margin: 0.1em 0;
             }
 
-            .subtitle {
-                font-size: 0.7em;
-                margin: 0.3em 0;
+            .success-modal {
+                width: 85%;
+                padding: 1.5rem;
             }
 
-            #maze-container {
-                padding: 2px;
-                margin: 2px auto;
+            .welcome-modal {
+                width: 85%;
+                padding: 1.5rem;
+            }
+
+            .welcome-modal p {
+                font-size: 1em;
             }
         }
     </style>
@@ -264,7 +229,7 @@
         <div id="maze-container">
             <canvas id="mazeCanvas"></canvas>
         </div>
-    </div>
+            </div>
     <div class="modal-overlay" id="modalOverlay"></div>
     <div class="success-modal" id="successModal">
         <h2>Congratulations!</h2>
@@ -272,7 +237,7 @@
         <p>Your promo code:</p>
         <div class="promo-code">mobitmigrate</div>
         <div class="countdown" id="countdown"></div>
-    </div>
+        </div>
     <div class="welcome-modal" id="welcomeModal">
         <h2>Welcome!</h2>
         <p>Complete the maze and get a free test of Disaster Recovery or Migration product</p>
