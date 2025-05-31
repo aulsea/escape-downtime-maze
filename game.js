@@ -9,7 +9,9 @@ class MazeGame {
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
-        this.maxTrailLength = 20;
+        this.maxTrailLength = 25;  // Increased for smoother trail
+        this.trailDuration = 800;  // Reduced to 800ms for more responsive fade
+        this.trailBaseColor = { r: 74, g: 95, b: 193 };  // Darker blue color (#4a5fc1)
         this.modalTimeout = null;
         this.countdownInterval = null;
         this.gameStarted = false;
@@ -277,11 +279,17 @@ class MazeGame {
                 this.playerPos.x = newX;
                 this.playerPos.y = newY;
                 
-                // Add new position to trail
-                this.trail.push({ x: this.playerPos.x, y: this.playerPos.y });
+                // Add new position to trail with timestamp
+                const currentTime = performance.now();
+                this.trail.push({
+                    x: this.playerPos.x,
+                    y: this.playerPos.y,
+                    timestamp: currentTime
+                });
                 
-                // Keep trail at maximum length
-                if (this.trail.length > this.maxTrailLength) {
+                // Remove old trail segments
+                const cutoffTime = currentTime - this.trailDuration;
+                while (this.trail.length > 0 && this.trail[0].timestamp < cutoffTime) {
                     this.trail.shift();
                 }
 
@@ -293,8 +301,8 @@ class MazeGame {
                 
                 if (distanceToEnd < this.cellSize * 0.5) {
                     this.isGameComplete = true;
-                    this.canMove = false; // Disable movement immediately on win
-                    this.targetPos = { ...this.playerPos }; // Stop any ongoing movement
+                    this.canMove = false;
+                    this.targetPos = { ...this.playerPos };
                     this.showSuccessModal();
                 }
             } else {
@@ -431,7 +439,11 @@ class MazeGame {
     resetPlayerPosition() {
         this.playerPos = { ...this.startPosition };
         this.targetPos = { ...this.startPosition };
-        this.trail = [{ ...this.startPosition }];
+        // Reset trail with timestamp
+        this.trail = [{
+            ...this.startPosition,
+            timestamp: performance.now()
+        }];
     }
 
     restart() {
@@ -474,13 +486,13 @@ class MazeGame {
         this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
         this.ctx.font = 'bold 24px Inter';  // Using Inter font family
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - 20);
+        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - 40);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 120;
-        const buttonHeight = 45;
+        const buttonWidth = 140;  // Increased width
+        const buttonHeight = 50;  // Increased height
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 + 20;
+        const buttonY = this.canvas.height / 2;  // Moved up
         
         // Button background with gradient
         const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
@@ -495,7 +507,7 @@ class MazeGame {
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         this.ctx.fill();
         
         // Reset shadow
@@ -505,7 +517,7 @@ class MazeGame {
         
         // Draw button text
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '600 16px Inter';  // Semi-bold weight
+        this.ctx.font = 'bold 18px Inter';  // Increased font size and made bold
         this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
     }
 
@@ -518,13 +530,13 @@ class MazeGame {
         this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
         this.ctx.font = 'bold 24px Inter';  // Using Inter font family
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - 20);
+        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - 40);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 120;
-        const buttonHeight = 45;
+        const buttonWidth = 140;  // Increased width
+        const buttonHeight = 50;  // Increased height
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 + 20;
+        const buttonY = this.canvas.height / 2;  // Moved up
         
         // Button background with gradient
         const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
@@ -539,7 +551,7 @@ class MazeGame {
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         this.ctx.fill();
         
         // Reset shadow
@@ -549,7 +561,7 @@ class MazeGame {
         
         // Draw button text
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '600 16px Inter';  // Semi-bold weight
+        this.ctx.font = 'bold 18px Inter';  // Increased font size and made bold
         this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
     }
 
@@ -647,20 +659,79 @@ class MazeGame {
         }
         this.ctx.stroke();
 
-        // Draw trail
+        // Draw trail with enhanced effects
         if (this.trail.length > 1) {
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.lineWidth = this.playerSize;
-            this.ctx.lineCap = 'round';
-            this.ctx.lineJoin = 'round';
-            this.ctx.beginPath();
-            this.ctx.moveTo(offsetX + this.trail[0].x, offsetY + this.trail[0].y);
+            const currentTime = performance.now();
             
-            for (let i = 1; i < this.trail.length; i++) {
-                this.ctx.lineTo(offsetX + this.trail[i].x, offsetY + this.trail[i].y);
+            // Draw glow effect first
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const segment = this.trail[i];
+                const nextSegment = this.trail[i + 1];
+                
+                // Calculate opacity based on age with smooth fade
+                const age = currentTime - segment.timestamp;
+                const opacity = Math.max(0, 1 - (age / this.trailDuration));
+                const smoothOpacity = Math.sin((opacity * Math.PI) / 2); // Smooth easing
+                
+                // Draw outer glow with reduced opacity
+                this.ctx.shadowColor = `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.2})`;
+                this.ctx.shadowBlur = 8;
+                this.ctx.strokeStyle = `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.15})`;
+                this.ctx.lineWidth = this.playerSize * 1.5;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(
+                    this.canvasOffset.x + segment.x,
+                    this.canvasOffset.y + segment.y
+                );
+                this.ctx.lineTo(
+                    this.canvasOffset.x + nextSegment.x,
+                    this.canvasOffset.y + nextSegment.y
+                );
+                this.ctx.stroke();
             }
             
-            this.ctx.stroke();
+            // Reset shadow for inner trail
+            this.ctx.shadowColor = 'transparent';
+            this.ctx.shadowBlur = 0;
+            
+            // Draw inner trail
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const segment = this.trail[i];
+                const nextSegment = this.trail[i + 1];
+                
+                const age = currentTime - segment.timestamp;
+                const opacity = Math.max(0, 1 - (age / this.trailDuration));
+                const smoothOpacity = Math.sin((opacity * Math.PI) / 2);
+                
+                // Create gradient for each segment
+                const gradient = this.ctx.createLinearGradient(
+                    this.canvasOffset.x + segment.x,
+                    this.canvasOffset.y + segment.y,
+                    this.canvasOffset.x + nextSegment.x,
+                    this.canvasOffset.y + nextSegment.y
+                );
+                
+                // Add gradient colors with reduced opacity
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`);
+                gradient.addColorStop(1, `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.2})`);
+                
+                this.ctx.strokeStyle = gradient;
+                this.ctx.lineWidth = this.playerSize * 0.7;  // Slightly thinner trail
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(
+                    this.canvasOffset.x + segment.x,
+                    this.canvasOffset.y + segment.y
+                );
+                this.ctx.lineTo(
+                    this.canvasOffset.x + nextSegment.x,
+                    this.canvasOffset.y + nextSegment.y
+                );
+                this.ctx.stroke();
+            }
         }
 
         // Draw flag at end point
