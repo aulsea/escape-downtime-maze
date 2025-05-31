@@ -41,7 +41,7 @@ class MazeGame {
         this.isGameComplete = false;
         this.isGameOver = false;
         this.showGameOverScreen = false;
-        this.showSuccessScreen = false; // Add success screen flag
+        this.showSuccessScreen = false;
         this.canMove = false;
         this.lastTime = performance.now();
         
@@ -61,9 +61,6 @@ class MazeGame {
         window.addEventListener('resize', () => {
             this.setupCanvasSize();
         });
-
-        // Show welcome modal initially
-        this.showWelcomeModal();
 
         this.finishPattern = this.createFinishPattern();
     }
@@ -460,11 +457,14 @@ class MazeGame {
         this.showSuccessScreen = false;
         this.canMove = false;
         
-        // Enable movement after a delay to prevent unwanted movement
+        // Show Level 1 message first
+        this.showLevelMessage(1);
+        
+        // Enable movement after the level message
         setTimeout(() => {
             this.resetPlayerPosition();
             this.canMove = true;
-        }, 500);
+        }, 1000);
     }
 
     resetPlayerPosition() {
@@ -541,7 +541,7 @@ class MazeGame {
             modalContent.className = 'modal-content';
             
             const heading = document.createElement('h2');
-            heading.textContent = 'Game Over';
+            heading.textContent = 'Data did not survive';
             
             const button = document.createElement('button');
             button.id = 'startOverButton';
@@ -551,7 +551,7 @@ class MazeGame {
             modalContent.appendChild(heading);
             modalContent.appendChild(button);
             gameOverModal.appendChild(modalContent);
-            document.body.appendChild(gameOverModal);
+            document.getElementById('modal-container').appendChild(gameOverModal);
 
             // Add event listener to the button
             button.addEventListener('click', () => {
@@ -878,6 +878,18 @@ class MazeGame {
         requestAnimationFrame((time) => this.animate(time));
     }
 
+    showLevelMessage(level) {
+        const levelMsg = document.createElement('div');
+        levelMsg.className = 'modal';
+        levelMsg.style.padding = '2.5rem';
+        levelMsg.innerHTML = `<h2>Level ${level}</h2>`;
+        document.getElementById('modal-container').appendChild(levelMsg);
+        
+        setTimeout(() => {
+            document.getElementById('modal-container').removeChild(levelMsg);
+        }, 800);
+    }
+
     showSuccessModal() {
         const modal = document.getElementById('successModal');
         const overlay = document.getElementById('modalOverlay');
@@ -892,18 +904,15 @@ class MazeGame {
             this.generateMaze();
             this.resetPlayerPosition();
             
-            const levelMsg = document.createElement('div');
-            levelMsg.className = 'modal';
-            levelMsg.style.padding = '2rem';
-            levelMsg.innerHTML = '<h2>Level 2</h2>';
-            document.body.appendChild(levelMsg);
+            // Show Level 2 message
+            this.showLevelMessage(2);
             
+            // Enable movement after the level message
             setTimeout(() => {
-                document.body.removeChild(levelMsg);
                 this.gameStarted = true;
                 this.isGameComplete = false;
                 this.canMove = true;
-            }, 800);
+            }, 1000);
             
             return;
         }
