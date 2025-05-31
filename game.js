@@ -2,18 +2,19 @@ class MazeGame {
     constructor() {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.mazeSize = 15;
-        this.cellSize = 50;  // Reset to original size
-        this.wallThickness = 6;  // Reset to original size
-        this.playerSize = 12;  // Reset to original size
+        this.mazeSize = 16; // Changed from 15 to 16
+        this.cellSize = 46;  // Slightly adjusted for 16x16
+        this.wallThickness = 2; // Thinner walls for outline style
+        this.playerSize = 10;  // Reduced from 14
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
         this.maxTrailLength = 35;
         this.trailDuration = 1000;
+        this.trailSegmentSpacing = 6;
         this.trailColors = {
-            outer: { r: 74, g: 95, b: 193 },
-            inner: { r: 255, g: 255, b: 255 }
+            primary: { r: 255, g: 255, b: 255 },
+            secondary: { r: 255, g: 255, b: 255 }
         };
         this.modalTimeout = null;
         this.countdownInterval = null;
@@ -71,30 +72,25 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         
-        // Detect if we're on a tablet (larger touch screen)
         const isTablet = ('ontouchstart' in window) && window.innerWidth >= 768;
         const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         
-        // Calculate container size based on device type
         let containerSize;
         if (isTablet) {
-            // For tablets, use larger size but maintain aspect ratio
             containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.8);
-            this.cellSize = 65; // Larger cells for tablets
-            this.wallThickness = 8;
-            this.playerSize = 18;
-        } else if (isTouch) {
-            // For phones, use full width approach
-            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.95);
-            this.cellSize = 55; // Medium cells for phones
-            this.wallThickness = 7;
-            this.playerSize = 16;
-        } else {
-            // For desktop, use moderate size
-            containerSize = Math.min(window.innerHeight * 0.75, window.innerWidth * 0.6);
-            this.cellSize = 45; // Original size for desktop
-            this.wallThickness = 6;
+            this.cellSize = 52; // Adjusted for tablet
+            this.wallThickness = 10;
             this.playerSize = 12;
+        } else if (isTouch) {
+            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.95);
+            this.cellSize = 42; // Adjusted for phone
+            this.wallThickness = 8;
+            this.playerSize = 10;
+        } else {
+            containerSize = Math.min(window.innerHeight * 0.75, window.innerWidth * 0.6);
+            this.cellSize = 32; // Adjusted for desktop
+            this.wallThickness = 6;
+            this.playerSize = 8;
         }
 
         // Set container size
@@ -141,34 +137,20 @@ class MazeGame {
             }
         }
 
-        // Create initial paths using recursive backtracking
         const stack = [[1, 1]];
         this.maze[1][1] = 0;
         
-        // Direction arrays for normal moves
+        // Direction arrays with balanced weights
         const directions = [
-            [2, 0], [-2, 0], [0, 2], [0, -2]
+            [2, 0], [0, 2], [-2, 0], [0, -2]
         ];
 
-        // Track the solution path
-        let solutionPath = new Set();
-        
         while (stack.length > 0) {
             const current = stack[stack.length - 1];
             const [x, y] = current;
             
-            // Bias towards moving right and down (towards end)
-            const shuffledDirections = [...directions].sort(() => {
-                const rightDownBias = (dx, dy) => {
-                    let bias = 0;
-                    if (dx > 0) bias += 0.2; // Bias right
-                    if (dy > 0) bias += 0.2; // Bias down
-                    return bias;
-                };
-                const [dx1, dy1] = directions[0];
-                const [dx2, dy2] = directions[1];
-                return rightDownBias(dx2, dy2) - rightDownBias(dx1, dy1) + (Math.random() * 0.6 - 0.3);
-            });
+            // Simple random shuffle
+            const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
             
             let foundPath = false;
             for (const [dx, dy] of shuffledDirections) {
@@ -192,106 +174,45 @@ class MazeGame {
             }
         }
 
-        // Find the solution path using A* algorithm
-        const findPath = () => {
-            const start = [1, 1];
-            const end = [this.mazeSize - 2, this.mazeSize - 2];
-            
-            const heuristic = (x, y) => {
-                return Math.abs(x - end[0]) + Math.abs(y - end[1]);
-            };
-            
-            const openSet = new Set([start.join(',')]);
-            const cameFrom = new Map();
-            const gScore = new Map([[start.join(','), 0]]);
-            const fScore = new Map([[start.join(','), heuristic(start[0], start[1])]]);
-            
-            while (openSet.size > 0) {
-                let current = null;
-                let lowestFScore = Infinity;
-                
-                for (const pos of openSet) {
-                    const score = fScore.get(pos) || Infinity;
-                    if (score < lowestFScore) {
-                        lowestFScore = score;
-                        current = pos;
-                    }
-                }
-                
-                const [x, y] = current.split(',').map(Number);
-                
-                if (x === end[0] && y === end[1]) {
-                    // Reconstruct path
-                    const path = new Set([current]);
-                    let currentPos = current;
-                    while (cameFrom.has(currentPos)) {
-                        currentPos = cameFrom.get(currentPos);
-                        path.add(currentPos);
-                    }
-                    return path;
-                }
-                
-                openSet.delete(current);
-                
-                for (const [dx, dy] of [[1,0], [-1,0], [0,1], [0,-1]]) {
-                    const newX = x + dx;
-                    const newY = y + dy;
-                    const neighbor = [newX, newY].join(',');
-                    
-                    if (newX > 0 && newX < this.mazeSize - 1 &&
-                        newY > 0 && newY < this.mazeSize - 1 &&
-                        this.maze[newY][newX] === 0) {
-                        
-                        const tentativeGScore = (gScore.get(current) || 0) + 1;
-                        
-                        if (tentativeGScore < (gScore.get(neighbor) || Infinity)) {
-                            cameFrom.set(neighbor, current);
-                            gScore.set(neighbor, tentativeGScore);
-                            fScore.set(neighbor, tentativeGScore + heuristic(newX, newY));
-                            openSet.add(neighbor);
-                        }
-                    }
-                }
-            }
-            
-            return new Set(); // No path found
-        };
+        // Add more shortcuts for easier navigation
+        const numShortcuts = Math.floor(this.mazeSize * 0.3); // Even more shortcuts
+        let shortcutsAdded = 0;
         
-        // Get the solution path
-        solutionPath = findPath();
-        
-        // Fill in all non-solution paths
-        for (let y = 0; y < this.mazeSize; y++) {
-            for (let x = 0; x < this.mazeSize; x++) {
-                if (this.maze[y][x] === 0 && !solutionPath.has([x,y].join(','))) {
-                    // Check if this is part of the start or end area
-                    const isStartArea = (x === 1 && y === 1) || (x === 1 && y === 2) || (x === 2 && y === 1);
-                    const isEndArea = (x === this.mazeSize - 2 && y === this.mazeSize - 2);
-                    
-                    // Only fill if not part of start/end area
-                    if (!isStartArea && !isEndArea) {
-                        // Randomly decide whether to fill this path
-                        if (Math.random() < 0.85) { // 85% chance to fill non-solution paths
-                            this.maze[y][x] = 1;
-                        }
+        while (shortcutsAdded < numShortcuts) {
+            const x = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
+            const y = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
+            
+            if (this.maze[y][x] === 1) {
+                let pathCount = 0;
+                
+                // Simple path check
+                for (const [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+                    const checkX = x + dx;
+                    const checkY = y + dy;
+                    if (this.maze[checkY]?.[checkX] === 0) {
+                        pathCount++;
                     }
+                }
+                
+                if (pathCount >= 1) {
+                this.maze[y][x] = 0;
+                    shortcutsAdded++;
                 }
             }
         }
 
-        // Ensure start and end areas are clear
-        this.maze[1][1] = 0;
-        this.maze[1][2] = 0;
-        this.maze[2][1] = 0;
-        this.maze[this.mazeSize - 2][this.mazeSize - 2] = 0;
-        
-        // Add a single approach to the end
-        if (Math.random() < 0.5) {
-            this.maze[this.mazeSize - 3][this.mazeSize - 2] = 0;
-            this.maze[this.mazeSize - 2][this.mazeSize - 3] = 1;
-        } else {
-            this.maze[this.mazeSize - 2][this.mazeSize - 3] = 0;
-            this.maze[this.mazeSize - 3][this.mazeSize - 2] = 1;
+        // Create more open areas near start and end
+        for (let y = 1; y <= 2; y++) {
+            for (let x = 1; x <= 2; x++) {
+                this.maze[y][x] = 0;
+            }
+        }
+
+        // More open end area
+        for (let y = this.mazeSize - 3; y <= this.mazeSize - 2; y++) {
+            for (let x = this.mazeSize - 3; x <= this.mazeSize - 2; x++) {
+                this.maze[y][x] = 0;
+            }
         }
     }
 
@@ -732,13 +653,111 @@ class MazeGame {
         return this.ctx.createPattern(patternCanvas, 'repeat');
     }
 
+    drawTrail() {
+        if (this.trail.length < 2) return;
+        
+        const currentTime = performance.now();
+        
+        // Create segments for dotted trail effect
+        let segments = [];
+        for (let i = 0; i < this.trail.length - 1; i++) {
+            const segment = this.trail[i];
+            const nextSegment = this.trail[i + 1];
+            
+            // Calculate points between segments
+            const dx = nextSegment.x - segment.x;
+            const dy = nextSegment.y - segment.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const steps = Math.max(1, Math.floor(distance / this.trailSegmentSpacing));
+            
+            for (let j = 0; j < steps; j++) {
+                const t = j / steps;
+                segments.push({
+                    x: segment.x + dx * t,
+                    y: segment.y + dy * t,
+                    timestamp: segment.timestamp + (nextSegment.timestamp - segment.timestamp) * t
+                });
+            }
+        }
+        
+        // Draw trail segments
+        segments.forEach((segment, index) => {
+            const age = currentTime - segment.timestamp;
+            const opacity = Math.max(0, 1 - (age / this.trailDuration));
+            const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
+            
+            // Calculate size based on age and position
+            const sizeMultiplier = 1 - (index / segments.length) * 0.6; // Reduced size decrease
+            const pulseEffect = 0.8 + Math.sin(currentTime * 0.005 + index * 0.2) * 0.2;
+            const size = this.playerSize * 0.8 * sizeMultiplier * pulseEffect; // Increased base size multiplier
+            
+            // Draw dot with enhanced glow
+            this.ctx.shadowColor = `rgba(255, 255, 255, ${smoothOpacity * 0.7})`; // Increased glow opacity
+            this.ctx.shadowBlur = 15;
+            
+            // Draw larger outer glow
+            this.ctx.beginPath();
+            this.ctx.arc(
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                size * 1.5, // Larger outer glow
+                0,
+                Math.PI * 2
+            );
+            
+            const outerGradient = this.ctx.createRadialGradient(
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                0,
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                size * 1.5
+            );
+            
+            outerGradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`);
+            outerGradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+            
+            this.ctx.fillStyle = outerGradient;
+            this.ctx.fill();
+            
+            // Draw main dot
+            this.ctx.beginPath();
+            this.ctx.arc(
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                size,
+                0,
+                Math.PI * 2
+            );
+            
+            const gradient = this.ctx.createRadialGradient(
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                0,
+                this.canvasOffset.x + segment.x,
+                this.canvasOffset.y + segment.y,
+                size
+            );
+            
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.9})`); // Increased core opacity
+            gradient.addColorStop(1, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`); // Increased edge opacity
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fill();
+        });
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+    }
+
     drawMaze() {
-        // Clear canvas with darker background
-        this.ctx.fillStyle = '#1a1a2e';
+        // Clear canvas with dark background
+        this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw paths with lighter color
-        this.ctx.fillStyle = '#4a5fc1';
+        // Draw paths with subtle background
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 0) {
@@ -752,21 +771,19 @@ class MazeGame {
             }
         }
 
-        // Draw walls with increased thickness
-        this.ctx.strokeStyle = '#000';
+        // Draw walls
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         this.ctx.lineWidth = this.wallThickness;
         this.ctx.lineCap = 'square';
         this.ctx.lineJoin = 'miter';
         this.ctx.beginPath();
 
-        // Draw walls with proper positioning
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 1) {
                     const cellX = this.canvasOffset.x + x * this.cellSize;
                     const cellY = this.canvasOffset.y + y * this.cellSize;
                     
-                    // Draw horizontal walls
                     if (y === 0 || this.maze[y-1][x] === 0) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX + this.cellSize, cellY);
@@ -775,8 +792,6 @@ class MazeGame {
                         this.ctx.moveTo(cellX, cellY + this.cellSize);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
-
-                    // Draw vertical walls
                     if (x === 0 || this.maze[y][x-1] === 0) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX, cellY + this.cellSize);
@@ -790,153 +805,40 @@ class MazeGame {
         }
         this.ctx.stroke();
 
-        // Draw trail with enhanced effects
-        if (this.trail.length > 1) {
-            const currentTime = performance.now();
-            
-            // Draw outer glow
-            for (let i = 0; i < this.trail.length - 1; i++) {
-                const segment = this.trail[i];
-                const nextSegment = this.trail[i + 1];
-                
-                const age = currentTime - segment.timestamp;
-                const opacity = Math.max(0, 1 - (age / this.trailDuration));
-                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5); // Smoother fade
-                
-                // Outer glow
-                this.ctx.shadowColor = `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.3})`;
-                this.ctx.shadowBlur = 20;
-                this.ctx.strokeStyle = `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.1})`;
-                this.ctx.lineWidth = this.playerSize * 2;
-                this.ctx.lineCap = 'round';
-                this.ctx.lineJoin = 'round';
-                
-        this.ctx.beginPath();
-                this.ctx.moveTo(
-                    this.canvasOffset.x + segment.x,
-                    this.canvasOffset.y + segment.y
-                );
-                this.ctx.lineTo(
-                    this.canvasOffset.x + nextSegment.x,
-                    this.canvasOffset.y + nextSegment.y
-                );
-                this.ctx.stroke();
-            }
-            
-            // Reset shadow for middle layer
-            this.ctx.shadowColor = 'transparent';
-            this.ctx.shadowBlur = 0;
-            
-            // Draw middle layer
-            for (let i = 0; i < this.trail.length - 1; i++) {
-                const segment = this.trail[i];
-                const nextSegment = this.trail[i + 1];
-                
-                const age = currentTime - segment.timestamp;
-                const opacity = Math.max(0, 1 - (age / this.trailDuration));
-                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
-                
-                // Create gradient for middle layer
-                const gradient = this.ctx.createLinearGradient(
-                    this.canvasOffset.x + segment.x,
-                    this.canvasOffset.y + segment.y,
-                    this.canvasOffset.x + nextSegment.x,
-                    this.canvasOffset.y + nextSegment.y
-                );
-                
-                gradient.addColorStop(0, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.2})`);
-                gradient.addColorStop(1, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.1})`);
-                
-                this.ctx.strokeStyle = gradient;
-                this.ctx.lineWidth = this.playerSize * 1.2;
-                
-                this.ctx.beginPath();
-                this.ctx.moveTo(
-                    this.canvasOffset.x + segment.x,
-                    this.canvasOffset.y + segment.y
-                );
-                this.ctx.lineTo(
-                    this.canvasOffset.x + nextSegment.x,
-                    this.canvasOffset.y + nextSegment.y
-                );
-                this.ctx.stroke();
-            }
-            
-            // Draw inner trail
-            for (let i = 0; i < this.trail.length - 1; i++) {
-                const segment = this.trail[i];
-                const nextSegment = this.trail[i + 1];
-                
-                const age = currentTime - segment.timestamp;
-                const opacity = Math.max(0, 1 - (age / this.trailDuration));
-                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
-                
-                // Create gradient for inner trail
-                const gradient = this.ctx.createLinearGradient(
-                    this.canvasOffset.x + segment.x,
-                    this.canvasOffset.y + segment.y,
-                    this.canvasOffset.x + nextSegment.x,
-                    this.canvasOffset.y + nextSegment.y
-                );
-                
-                gradient.addColorStop(0, `rgba(${this.trailColors.inner.r}, ${this.trailColors.inner.g}, ${this.trailColors.inner.b}, ${smoothOpacity * 0.4})`);
-                gradient.addColorStop(1, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.2})`);
-                
-                this.ctx.strokeStyle = gradient;
-                this.ctx.lineWidth = this.playerSize * 0.6;
-                
-                this.ctx.beginPath();
-                this.ctx.moveTo(
-                    this.canvasOffset.x + segment.x,
-                    this.canvasOffset.y + segment.y
-                );
-                this.ctx.lineTo(
-                    this.canvasOffset.x + nextSegment.x,
-                    this.canvasOffset.y + nextSegment.y
-                );
-                this.ctx.stroke();
-            }
-        }
+        // Draw trail
+        this.drawTrail();
 
-        // Draw flag at end point
-        this.ctx.save();
+        // Draw finish point
+        const flagX = this.canvasOffset.x + this.endPos.x;
+        const flagY = this.canvasOffset.y + this.endPos.y;
         
         // Draw flag pole
-        this.ctx.strokeStyle = '#8B4513';
-        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
-        this.ctx.moveTo(this.canvasOffset.x + this.endPos.x, this.canvasOffset.y + this.endPos.y + this.playerSize * 2);
-        this.ctx.lineTo(this.canvasOffset.x + this.endPos.x, this.canvasOffset.y + this.endPos.y - this.playerSize * 2);
+        this.ctx.moveTo(flagX, flagY + this.playerSize * 2);
+        this.ctx.lineTo(flagX, flagY - this.playerSize * 2);
         this.ctx.stroke();
 
         // Draw flag
         const flagWidth = this.playerSize * 3;
         const flagHeight = this.playerSize * 2;
-        const flagX = this.canvasOffset.x + this.endPos.x;
-        const flagY = this.canvasOffset.y + this.endPos.y - this.playerSize * 2;
-
+        
         this.ctx.beginPath();
-        this.ctx.moveTo(flagX, flagY);
-        this.ctx.lineTo(flagX + flagWidth, flagY + flagHeight/2);
-        this.ctx.lineTo(flagX, flagY + flagHeight);
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
+        this.ctx.lineTo(flagX, flagY);
         this.ctx.closePath();
-
-        // Fill flag with red color
-        this.ctx.fillStyle = '#ff0000';
-        this.ctx.fill();
-
-        // Add flag glow
-        this.ctx.shadowColor = '#ff0000';
-        this.ctx.shadowBlur = 10;
-        this.ctx.strokeStyle = '#cc0000';
+        
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
-        this.ctx.restore();
-
-        // Draw player
-        this.ctx.fillStyle = '#fff';
-            this.ctx.beginPath();
+        // Draw player with enhanced glow
+        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)'; // Increased player glow
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
         this.ctx.arc(
             this.canvasOffset.x + this.playerPos.x,
             this.canvasOffset.y + this.playerPos.y,
@@ -944,14 +846,11 @@ class MazeGame {
             0,
             Math.PI * 2
         );
-            this.ctx.fill();
-
-        // Draw game over or success screen if needed
-        if (this.showGameOverScreen) {
-            this.drawGameOverScreen();
-        } else if (this.showSuccessScreen) {
-            this.drawSuccessScreen();
-        }
+        this.ctx.fill();
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
     }
 
     animate(currentTime) {
@@ -972,7 +871,7 @@ class MazeGame {
         const modal = document.getElementById('successModal');
         const overlay = document.getElementById('modalOverlay');
         const countdown = document.getElementById('countdown');
-        let timeLeft = 10;
+        let timeLeft = 15; // Increased from 10 to 15 seconds
 
         // If this is level 1, proceed to level 2
         if (this.currentLevel === 1) {
@@ -1010,9 +909,11 @@ class MazeGame {
         // Clear any existing timeouts/intervals
         if (this.modalTimeout) {
             clearTimeout(this.modalTimeout);
+            this.modalTimeout = null;
         }
         if (this.countdownInterval) {
             clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
         }
 
         // Show modal and overlay
@@ -1023,20 +924,25 @@ class MazeGame {
         this.resetPlayerPosition();
         this.canMove = false;
 
+        // Initial countdown display
+        countdown.textContent = `The game will restart in ${timeLeft} seconds`;
+
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
-            countdown.textContent = `The game will restart in ${timeLeft} seconds`;
             timeLeft--;
-
-            if (timeLeft < 0) {
-                clearInterval(this.countdownInterval);
+            if (timeLeft >= 0) {
+                countdown.textContent = `The game will restart in ${timeLeft} seconds`;
             }
         }, 1000);
 
         // Set timeout to reload the page
         this.modalTimeout = setTimeout(() => {
+            if (this.countdownInterval) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+            }
             window.location.reload();
-        }, 10000);
+        }, 15000); // Increased to 15 seconds (15000ms)
     }
 }
 
