@@ -3,9 +3,9 @@ class MazeGame {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.mazeSize = 15;
-        this.cellSize = 40;
+        this.cellSize = 45;
         this.wallThickness = 4;
-        this.playerSize = 8;
+        this.playerSize = 10;
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
@@ -67,18 +67,26 @@ class MazeGame {
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
 
-        const size = Math.min(containerWidth, containerHeight) - 20;
+        // Calculate the minimum required size for the maze
+        const requiredSize = this.mazeSize * this.cellSize + (this.wallThickness * 2);
+        
+        // Use the larger of the required size or container size
+        const size = Math.max(requiredSize, Math.min(containerWidth, containerHeight) - 20);
+        
         this.canvas.width = size;
         this.canvas.height = size;
         
-        // Adjust cell size based on canvas size while maintaining minimum size
-        const calculatedCellSize = Math.floor((size - this.wallThickness) / this.mazeSize);
-        this.cellSize = Math.max(calculatedCellSize, 40); // Ensure minimum cell size of 40px
+        // Maintain minimum cell size while allowing it to grow if space permits
+        const calculatedCellSize = Math.floor((size - this.wallThickness * 2) / this.mazeSize);
+        this.cellSize = Math.max(calculatedCellSize, 45); // Minimum cell size of 45px
         
-        // Calculate canvas offset for centered maze
+        // Adjust player size based on cell size
+        this.playerSize = Math.max(10, Math.floor(this.cellSize / 4.5));
+        
+        // Calculate canvas offset to center the maze
         this.canvasOffset = {
-            x: (this.canvas.width - this.mazeSize * this.cellSize) / 2,
-            y: (this.canvas.height - this.mazeSize * this.cellSize) / 2
+            x: (this.canvas.width - (this.mazeSize * this.cellSize)) / 2,
+            y: (this.canvas.height - (this.mazeSize * this.cellSize)) / 2
         };
 
         // Update positions with new cell size
