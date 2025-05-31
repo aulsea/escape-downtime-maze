@@ -3,9 +3,9 @@ class MazeGame {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.mazeSize = 15;
-        this.cellSize = 30;
-        this.wallThickness = 3;
-        this.playerSize = 5;
+        this.cellSize = 40;
+        this.wallThickness = 4;
+        this.playerSize = 8;
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
@@ -13,6 +13,7 @@ class MazeGame {
         this.modalTimeout = null;
         this.countdownInterval = null;
         this.gameStarted = false;
+        this.currentLevel = 1;
         this.startPosition = {
             x: this.cellSize * 1.5,
             y: this.cellSize * 1.5
@@ -70,8 +71,9 @@ class MazeGame {
         this.canvas.width = size;
         this.canvas.height = size;
         
-        // Adjust cell size to account for wall thickness
-        this.cellSize = Math.floor((size - this.wallThickness) / this.mazeSize);
+        // Adjust cell size based on canvas size while maintaining minimum size
+        const calculatedCellSize = Math.floor((size - this.wallThickness) / this.mazeSize);
+        this.cellSize = Math.max(calculatedCellSize, 40); // Ensure minimum cell size of 40px
         
         // Calculate canvas offset for centered maze
         this.canvasOffset = {
@@ -105,16 +107,21 @@ class MazeGame {
 
         // Create paths using recursive backtracking
         const stack = [[1, 1]];
-            this.maze[1][1] = 0;
+        this.maze[1][1] = 0;
+        
+        // Direction arrays for normal moves
+        const directions = [
+            [2, 0], [-2, 0], [0, 2], [0, -2]
+        ];
 
         while (stack.length > 0) {
             const [x, y] = stack[stack.length - 1];
-            const directions = [
-                [2, 0], [-2, 0], [0, 2], [0, -2]
-            ].sort(() => Math.random() - 0.5);
-
+            
+            // Shuffle directions randomly
+            const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
+            
             let foundPath = false;
-            for (const [dx, dy] of directions) {
+            for (const [dx, dy] of shuffledDirections) {
                 const newX = x + dx;
                 const newY = y + dy;
 
@@ -135,7 +142,41 @@ class MazeGame {
             }
         }
 
-        // Ensure end point is accessible
+        // Add a few strategic shortcuts (much fewer than before)
+        const numShortcuts = Math.floor(this.mazeSize * 0.4); // Reduced number of shortcuts
+        let shortcutsAdded = 0;
+        
+        while (shortcutsAdded < numShortcuts) {
+            const x = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
+            const y = 1 + Math.floor(Math.random() * (this.mazeSize - 2));
+            
+            if (this.maze[y][x] === 1) {
+                // Count adjacent paths
+                let pathCount = 0;
+                for (const [dx, dy] of directions) {
+                    const checkX = x + dx/2;
+                    const checkY = y + dy/2;
+                    if (checkX > 0 && checkX < this.mazeSize - 1 &&
+                        checkY > 0 && checkY < this.mazeSize - 1 &&
+                        this.maze[checkY][checkX] === 0) {
+                        pathCount++;
+                    }
+                }
+                
+                // Only create a shortcut if it connects existing paths
+                if (pathCount >= 2) {
+                    this.maze[y][x] = 0;
+                    shortcutsAdded++;
+                }
+            }
+        }
+
+        // Ensure start area is clear
+        this.maze[1][1] = 0;
+        this.maze[1][2] = 0;
+        this.maze[2][1] = 0;
+
+        // Ensure end area is clear and has limited approach paths
         this.maze[this.mazeSize - 2][this.mazeSize - 2] = 0;
         this.maze[this.mazeSize - 3][this.mazeSize - 2] = 0;
         this.maze[this.mazeSize - 2][this.mazeSize - 3] = 0;
@@ -244,6 +285,8 @@ class MazeGame {
                 
                 if (distanceToEnd < this.cellSize * 0.5) {
                     this.isGameComplete = true;
+                    this.canMove = false; // Disable movement immediately on win
+                    this.targetPos = { ...this.playerPos }; // Stop any ongoing movement
                     this.showSuccessModal();
                 }
             } else {
@@ -277,7 +320,7 @@ class MazeGame {
             const dx = pos.x - (offsetX + this.playerPos.x);
             const dy = pos.y - (offsetY + this.playerPos.y);
             const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance <= this.playerSize * 2;
+            return distance <= this.playerSize * 2.5; // Increased touch area for easier control
         };
 
         const movePlayer = (e) => {
@@ -374,7 +417,7 @@ class MazeGame {
         setTimeout(() => {
             this.resetPlayerPosition();
             this.canMove = true;
-        }, 500); // Increased delay for stability
+        }, 500);
     }
 
     resetPlayerPosition() {
@@ -402,10 +445,15 @@ class MazeGame {
         welcomeModal.style.display = 'none';
         overlay.style.display = 'none';
 
+        // Reset to level 1
+        this.currentLevel = 1;
+        this.mazeSize = 15;
+        this.moveSpeed = 0.15;
+
         // Reset game state
         this.canMove = false;
         this.gameStarted = false;
-            this.resetPlayerPosition();
+        this.resetPlayerPosition();
         this.generateMaze();
     }
 
@@ -415,20 +463,42 @@ class MazeGame {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw message
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
+        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - 20);
 
-        // Draw "Play Again" button
-        const buttonX = this.canvas.width / 2 - 50;
+        // Draw "Play Again" button with consistent styling
+        const buttonWidth = 120;
+        const buttonHeight = 45;
+        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
         const buttonY = this.canvas.height / 2 + 20;
-        this.ctx.fillStyle = '#4CAF50';
-        this.ctx.fillRect(buttonX, buttonY, 100, 40);
         
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText('Play Again', this.canvas.width / 2, this.canvas.height / 2 + 45);
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
+        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        
+        // Button shadow
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowOffsetY = 2;
+        
+        // Draw button background
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.fill();
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Draw button text
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '600 16px Inter';  // Semi-bold weight
+        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
     }
 
     drawSuccessScreen() {
@@ -437,20 +507,42 @@ class MazeGame {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw success message
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
+        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - 20);
 
-        // Draw "Play Again" button
-        const buttonX = this.canvas.width / 2 - 50;
+        // Draw "Play Again" button with consistent styling
+        const buttonWidth = 120;
+        const buttonHeight = 45;
+        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
         const buttonY = this.canvas.height / 2 + 20;
-        this.ctx.fillStyle = '#4CAF50';
-        this.ctx.fillRect(buttonX, buttonY, 100, 40);
         
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText('Play Again', this.canvas.width / 2, this.canvas.height / 2 + 45);
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
+        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        
+        // Button shadow
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowOffsetY = 2;
+        
+        // Draw button background
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.fill();
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Draw button text
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '600 16px Inter';  // Semi-bold weight
+        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
     }
 
     createFinishPattern() {
@@ -639,6 +731,48 @@ class MazeGame {
         const countdown = document.getElementById('countdown');
         let timeLeft = 10;
 
+        // If this is level 1, proceed to level 2
+        if (this.currentLevel === 1) {
+            this.currentLevel = 2;
+            
+            // Disable movement during transition
+            this.canMove = false;
+            this.gameStarted = false;
+            
+            // Generate new maze and reset position first
+            this.generateMaze();
+            this.resetPlayerPosition();
+            
+            // Short delay to ensure maze is drawn
+            setTimeout(() => {
+                // Show level 2 message
+                const levelMsg = document.createElement('div');
+                levelMsg.style.position = 'fixed';
+                levelMsg.style.top = '50%';
+                levelMsg.style.left = '50%';
+                levelMsg.style.transform = 'translate(-50%, -50%)';
+                levelMsg.style.backgroundColor = 'rgba(26, 26, 46, 0.95)';
+                levelMsg.style.color = 'white';
+                levelMsg.style.padding = '20px';
+                levelMsg.style.borderRadius = '10px';
+                levelMsg.style.textAlign = 'center';
+                levelMsg.style.zIndex = '1000';
+                levelMsg.style.border = '2px solid #4a5fc1';
+                levelMsg.innerHTML = '<h2>Level 2</h2>';
+                document.body.appendChild(levelMsg);
+                
+                // Remove message and enable movement after short delay
+                setTimeout(() => {
+                    document.body.removeChild(levelMsg);
+                    this.gameStarted = true;
+                    this.isGameComplete = false;
+                    this.canMove = true;
+                }, 800);
+            }, 100);
+            
+            return;
+        }
+
         // Clear any existing timeouts/intervals
         if (this.modalTimeout) {
             clearTimeout(this.modalTimeout);
@@ -652,12 +786,7 @@ class MazeGame {
         overlay.style.display = 'block';
 
         // Reset player position immediately
-        this.playerPos = {
-            x: this.cellSize * 1.5,
-            y: this.cellSize * 1.5
-        };
-        this.targetPos = { ...this.playerPos };
-        this.trail = [{ ...this.playerPos }];
+        this.resetPlayerPosition();
         this.canMove = false;
 
         // Update countdown every second
