@@ -77,17 +77,27 @@ class MazeGame {
         const containerHeight = container.clientHeight;
         const viewportHeight = window.innerHeight;
         
+        // Calculate the minimum size needed for the maze
+        const minRequiredSize = this.mazeSize * this.cellSize + (this.wallThickness * 2);
+        
         // Calculate the maximum size that would fit on the screen
-        // Leave more space for margins on tablets
         const maxSize = Math.min(
             containerWidth,
             containerHeight,
-            // Use 85% of viewport height to ensure full visibility
             viewportHeight * 0.85
         );
 
         // Set display size (CSS pixels)
-        const displaySize = Math.min(maxSize - 20, 600);
+        const displaySize = Math.max(
+            Math.min(maxSize - 20, 600),
+            minRequiredSize
+        );
+        
+        // Update container size to match
+        container.style.width = `${displaySize}px`;
+        container.style.height = `${displaySize}px`;
+        
+        // Set canvas display size
         this.canvas.style.width = `${displaySize}px`;
         this.canvas.style.height = `${displaySize}px`;
         
@@ -99,12 +109,12 @@ class MazeGame {
         this.ctx.scale(dpr, dpr);
         
         // Calculate cell size based on available space
-        const calculatedCellSize = Math.floor((displaySize - this.wallThickness) / this.mazeSize);
-        this.cellSize = Math.min(calculatedCellSize, 35);
+        const calculatedCellSize = Math.floor((displaySize - this.wallThickness * 2) / this.mazeSize);
+        this.cellSize = Math.min(Math.max(calculatedCellSize, 30), 35); // Keep cell size between 30 and 35
         
         // Ensure minimum sizes for visibility
-        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 5);
-        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 2);
+        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 6);
+        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 3);
         
         // Calculate maze offset to center it
         const totalMazeSize = this.mazeSize * this.cellSize;
