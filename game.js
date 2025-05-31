@@ -9,9 +9,12 @@ class MazeGame {
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
-        this.maxTrailLength = 25;  // Increased for smoother trail
-        this.trailDuration = 800;  // Reduced to 800ms for more responsive fade
-        this.trailBaseColor = { r: 74, g: 95, b: 193 };  // Darker blue color (#4a5fc1)
+        this.maxTrailLength = 35;  // Increased for smoother trail
+        this.trailDuration = 1000;  // 1 second duration
+        this.trailColors = {
+            outer: { r: 74, g: 95, b: 193 },    // Base blue (#4a5fc1)
+            inner: { r: 255, g: 255, b: 255 }   // White
+        };
         this.modalTimeout = null;
         this.countdownInterval = null;
         this.gameStarted = false;
@@ -21,6 +24,7 @@ class MazeGame {
             y: this.cellSize * 1.5
         };
         this.canvasOffset = { x: 0, y: 0 };
+        this.buttonScale = 1;
         
         // Set canvas size based on device
         this.setupCanvasSize();
@@ -72,17 +76,21 @@ class MazeGame {
         // Calculate the minimum required size for the maze
         const requiredSize = this.mazeSize * this.cellSize + (this.wallThickness * 2);
         
-        // Use the larger of the required size or container size
-        const size = Math.max(requiredSize, Math.min(containerWidth, containerHeight) - 20);
+        // For tablets, ensure minimum size is respected
+        const minSize = Math.min(containerWidth, containerHeight, 800); // Cap at 800px
+        const size = Math.max(requiredSize, minSize - 40); // 20px padding on each side
         
         this.canvas.width = size;
         this.canvas.height = size;
         
-        // Maintain minimum cell size while allowing it to grow if space permits
+        // Scale cell size based on canvas size
         const calculatedCellSize = Math.floor((size - this.wallThickness * 2) / this.mazeSize);
         this.cellSize = Math.max(calculatedCellSize, 45); // Minimum cell size of 45px
         
-        // Adjust player size based on cell size
+        // Scale UI elements based on canvas size
+        this.buttonScale = Math.max(1, size / 600); // Base scale on 600px reference size
+        
+        // Adjust player size based on cell size and scale
         this.playerSize = Math.max(10, Math.floor(this.cellSize / 4.5));
         
         // Calculate canvas offset to center the maze
@@ -331,42 +339,34 @@ class MazeGame {
         };
 
         const isClickOnPlayer = (pos) => {
-            const offsetX = (this.canvas.width - this.mazeSize * this.cellSize) / 2;
-            const offsetY = (this.canvas.height - this.mazeSize * this.cellSize) / 2;
-            const dx = pos.x - (offsetX + this.playerPos.x);
-            const dy = pos.y - (offsetY + this.playerPos.y);
+            const dx = pos.x - (this.canvasOffset.x + this.playerPos.x);
+            const dy = pos.y - (this.canvasOffset.y + this.playerPos.y);
             const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance <= this.playerSize * 2.5; // Increased touch area for easier control
+            return distance <= this.playerSize * 2.5;
         };
 
-        const movePlayer = (e) => {
-            if (!isDragging || !this.gameStarted || this.isGameComplete || this.isGameOver || !this.canMove || !canStartDrag) {
-                return;
-            }
-            
-            const pos = getCanvasPoint(e);
-            const offsetX = (this.canvas.width - this.mazeSize * this.cellSize) / 2;
-            const offsetY = (this.canvas.height - this.mazeSize * this.cellSize) / 2;
-            
-            this.targetPos = {
-                x: Math.max(this.cellSize, Math.min(pos.x - offsetX, (this.mazeSize - 1) * this.cellSize)),
-                y: Math.max(this.cellSize, Math.min(pos.y - offsetY, (this.mazeSize - 1) * this.cellSize))
-            };
+        const isClickOnButton = (pos) => {
+            if (!this.showGameOverScreen && !this.showSuccessScreen) return false;
+
+            // Calculate scaled button dimensions
+            const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
+            const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
+            const buttonX = this.canvas.width / 2 - buttonWidth / 2;
+            const buttonY = this.canvas.height / 2 - buttonHeight / 2;
+
+            return pos.x >= buttonX && 
+                   pos.x <= buttonX + buttonWidth && 
+                   pos.y >= buttonY && 
+                   pos.y <= buttonY + buttonHeight;
         };
 
         const startDragging = (e) => {
             const pos = getCanvasPoint(e);
             
-            if (this.showGameOverScreen || this.showSuccessScreen) {
-                // Check if "Play Again" button is clicked
-                const buttonX = this.canvas.width / 2 - 50;
-                const buttonY = this.canvas.height / 2 + 20;
-                if (pos.x >= buttonX && pos.x <= buttonX + 100 &&
-                    pos.y >= buttonY && pos.y <= buttonY + 40) {
-                    this.restart();
-                    setTimeout(() => this.startGame(), 100);
-                    return;
-                }
+            if (isClickOnButton(pos)) {
+                this.restart();
+                setTimeout(() => this.startGame(), 100);
+                return;
             }
             
             if (this.canMove && this.gameStarted && !this.isGameComplete && !this.isGameOver && isClickOnPlayer(pos)) {
@@ -376,10 +376,22 @@ class MazeGame {
             }
         };
 
+        const movePlayer = (e) => {
+            if (!isDragging || !this.gameStarted || this.isGameComplete || this.isGameOver || !this.canMove || !canStartDrag) {
+                return;
+            }
+            
+            const pos = getCanvasPoint(e);
+            
+            this.targetPos = {
+                x: Math.max(this.cellSize, Math.min(pos.x - this.canvasOffset.x, (this.mazeSize - 1) * this.cellSize)),
+                y: Math.max(this.cellSize, Math.min(pos.y - this.canvasOffset.y, (this.mazeSize - 1) * this.cellSize))
+            };
+        };
+
         const stopDragging = () => {
             isDragging = false;
             canStartDrag = false;
-            // Reset target position to current position when stopping drag
             this.targetPos = { ...this.playerPos };
         };
 
@@ -479,30 +491,33 @@ class MazeGame {
 
     drawGameOverScreen() {
         // Semi-transparent overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Increased overlay opacity
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Scale text and button based on canvas size
+        const fontSize = Math.max(24, Math.floor(24 * this.buttonScale));
+        const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
+        const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
+
         // Draw message
-        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
-        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
+        this.ctx.fillStyle = '#9ab3f5';
+        this.ctx.font = `bold ${fontSize}px Inter`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - 40);
+        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - buttonHeight);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 140;  // Increased width
-        const buttonHeight = 50;  // Increased height
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2;  // Moved up
+        const buttonY = this.canvas.height / 2 - buttonHeight / 2; // Centered vertically
         
         // Button background with gradient
         const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
-        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
         
         // Button shadow
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetY = 2;
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetY = 4;
         
         // Draw button background
         this.ctx.fillStyle = gradient;
@@ -516,37 +531,41 @@ class MazeGame {
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
+        const buttonFontSize = Math.max(18, Math.floor(18 * this.buttonScale));
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 18px Inter';  // Increased font size and made bold
-        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
+        this.ctx.font = `bold ${buttonFontSize}px Inter`;
+        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + buttonFontSize/3);
     }
 
     drawSuccessScreen() {
         // Semi-transparent overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Increased overlay opacity
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Scale text and button based on canvas size
+        const fontSize = Math.max(24, Math.floor(24 * this.buttonScale));
+        const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
+        const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
+
         // Draw success message
-        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
-        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
+        this.ctx.fillStyle = '#9ab3f5';
+        this.ctx.font = `bold ${fontSize}px Inter`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - 40);
+        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - buttonHeight);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 140;  // Increased width
-        const buttonHeight = 50;  // Increased height
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2;  // Moved up
+        const buttonY = this.canvas.height / 2 - buttonHeight / 2; // Centered vertically
         
         // Button background with gradient
         const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
-        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
         
         // Button shadow
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetY = 2;
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetY = 4;
         
         // Draw button background
         this.ctx.fillStyle = gradient;
@@ -560,9 +579,10 @@ class MazeGame {
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
+        const buttonFontSize = Math.max(18, Math.floor(18 * this.buttonScale));
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 18px Inter';  // Increased font size and made bold
-        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
+        this.ctx.font = `bold ${buttonFontSize}px Inter`;
+        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + buttonFontSize/3);
     }
 
     createFinishPattern() {
@@ -663,23 +683,61 @@ class MazeGame {
         if (this.trail.length > 1) {
             const currentTime = performance.now();
             
-            // Draw glow effect first
+            // Draw outer glow
             for (let i = 0; i < this.trail.length - 1; i++) {
                 const segment = this.trail[i];
                 const nextSegment = this.trail[i + 1];
                 
-                // Calculate opacity based on age with smooth fade
                 const age = currentTime - segment.timestamp;
                 const opacity = Math.max(0, 1 - (age / this.trailDuration));
-                const smoothOpacity = Math.sin((opacity * Math.PI) / 2); // Smooth easing
+                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5); // Smoother fade
                 
-                // Draw outer glow with reduced opacity
-                this.ctx.shadowColor = `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.2})`;
-                this.ctx.shadowBlur = 8;
-                this.ctx.strokeStyle = `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.15})`;
-                this.ctx.lineWidth = this.playerSize * 1.5;
+                // Outer glow
+                this.ctx.shadowColor = `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.3})`;
+                this.ctx.shadowBlur = 20;
+                this.ctx.strokeStyle = `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.1})`;
+                this.ctx.lineWidth = this.playerSize * 2;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
+                
+        this.ctx.beginPath();
+                this.ctx.moveTo(
+                    this.canvasOffset.x + segment.x,
+                    this.canvasOffset.y + segment.y
+                );
+                this.ctx.lineTo(
+                    this.canvasOffset.x + nextSegment.x,
+                    this.canvasOffset.y + nextSegment.y
+                );
+                this.ctx.stroke();
+            }
+            
+            // Reset shadow for middle layer
+            this.ctx.shadowColor = 'transparent';
+            this.ctx.shadowBlur = 0;
+            
+            // Draw middle layer
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const segment = this.trail[i];
+                const nextSegment = this.trail[i + 1];
+                
+                const age = currentTime - segment.timestamp;
+                const opacity = Math.max(0, 1 - (age / this.trailDuration));
+                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
+                
+                // Create gradient for middle layer
+                const gradient = this.ctx.createLinearGradient(
+                    this.canvasOffset.x + segment.x,
+                    this.canvasOffset.y + segment.y,
+                    this.canvasOffset.x + nextSegment.x,
+                    this.canvasOffset.y + nextSegment.y
+                );
+                
+                gradient.addColorStop(0, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.2})`);
+                gradient.addColorStop(1, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.1})`);
+                
+                this.ctx.strokeStyle = gradient;
+                this.ctx.lineWidth = this.playerSize * 1.2;
                 
                 this.ctx.beginPath();
                 this.ctx.moveTo(
@@ -693,10 +751,6 @@ class MazeGame {
                 this.ctx.stroke();
             }
             
-            // Reset shadow for inner trail
-            this.ctx.shadowColor = 'transparent';
-            this.ctx.shadowBlur = 0;
-            
             // Draw inner trail
             for (let i = 0; i < this.trail.length - 1; i++) {
                 const segment = this.trail[i];
@@ -704,9 +758,9 @@ class MazeGame {
                 
                 const age = currentTime - segment.timestamp;
                 const opacity = Math.max(0, 1 - (age / this.trailDuration));
-                const smoothOpacity = Math.sin((opacity * Math.PI) / 2);
+                const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
                 
-                // Create gradient for each segment
+                // Create gradient for inner trail
                 const gradient = this.ctx.createLinearGradient(
                     this.canvasOffset.x + segment.x,
                     this.canvasOffset.y + segment.y,
@@ -714,12 +768,11 @@ class MazeGame {
                     this.canvasOffset.y + nextSegment.y
                 );
                 
-                // Add gradient colors with reduced opacity
-                gradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`);
-                gradient.addColorStop(1, `rgba(${this.trailBaseColor.r}, ${this.trailBaseColor.g}, ${this.trailBaseColor.b}, ${smoothOpacity * 0.2})`);
+                gradient.addColorStop(0, `rgba(${this.trailColors.inner.r}, ${this.trailColors.inner.g}, ${this.trailColors.inner.b}, ${smoothOpacity * 0.4})`);
+                gradient.addColorStop(1, `rgba(${this.trailColors.outer.r}, ${this.trailColors.outer.g}, ${this.trailColors.outer.b}, ${smoothOpacity * 0.2})`);
                 
                 this.ctx.strokeStyle = gradient;
-                this.ctx.lineWidth = this.playerSize * 0.7;  // Slightly thinner trail
+                this.ctx.lineWidth = this.playerSize * 0.6;
                 
                 this.ctx.beginPath();
                 this.ctx.moveTo(
