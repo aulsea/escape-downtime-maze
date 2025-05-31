@@ -3,17 +3,17 @@ class MazeGame {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.mazeSize = 15;
-        this.cellSize = 45;
-        this.wallThickness = 4;
-        this.playerSize = 10;
+        this.cellSize = 50;  // Increased base cell size
+        this.wallThickness = 6;  // Increased wall thickness
+        this.playerSize = 12;  // Increased player size
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
-        this.maxTrailLength = 35;  // Increased for smoother trail
-        this.trailDuration = 1000;  // 1 second duration
+        this.maxTrailLength = 35;
+        this.trailDuration = 1000;
         this.trailColors = {
-            outer: { r: 74, g: 95, b: 193 },    // Base blue (#4a5fc1)
-            inner: { r: 255, g: 255, b: 255 }   // White
+            outer: { r: 74, g: 95, b: 193 },
+            inner: { r: 255, g: 255, b: 255 }
         };
         this.modalTimeout = null;
         this.countdownInterval = null;
@@ -73,30 +73,27 @@ class MazeGame {
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
 
-        // Calculate the minimum required size for the maze
-        const requiredSize = this.mazeSize * this.cellSize + (this.wallThickness * 2);
+        // Calculate the ideal cell size based on container dimensions
+        const idealCellSize = Math.floor(Math.min(containerWidth, containerHeight) / (this.mazeSize + 2));
         
-        // For tablets, ensure minimum size is respected
-        const minSize = Math.min(containerWidth, containerHeight, 800); // Cap at 800px
-        const size = Math.max(requiredSize, minSize - 40); // 20px padding on each side
+        // Ensure minimum cell size for tablets
+        this.cellSize = Math.max(50, idealCellSize);
         
-        this.canvas.width = size;
-        this.canvas.height = size;
+        // Scale other dimensions based on cell size
+        this.wallThickness = Math.max(6, Math.floor(this.cellSize * 0.12));
+        this.playerSize = Math.max(12, Math.floor(this.cellSize * 0.24));
+
+        // Calculate the total maze size including padding
+        const totalMazeSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 2);
         
-        // Scale cell size based on canvas size
-        const calculatedCellSize = Math.floor((size - this.wallThickness * 2) / this.mazeSize);
-        this.cellSize = Math.max(calculatedCellSize, 45); // Minimum cell size of 45px
+        // Set canvas size to fit maze with padding
+        this.canvas.width = totalMazeSize;
+        this.canvas.height = totalMazeSize;
         
-        // Scale UI elements based on canvas size
-        this.buttonScale = Math.max(1, size / 600); // Base scale on 600px reference size
-        
-        // Adjust player size based on cell size and scale
-        this.playerSize = Math.max(10, Math.floor(this.cellSize / 4.5));
-        
-        // Calculate canvas offset to center the maze
+        // Center the maze in the canvas
         this.canvasOffset = {
-            x: (this.canvas.width - (this.mazeSize * this.cellSize)) / 2,
-            y: (this.canvas.height - (this.mazeSize * this.cellSize)) / 2
+            x: this.wallThickness,
+            y: this.wallThickness
         };
 
         // Update positions with new cell size
@@ -108,6 +105,9 @@ class MazeGame {
             x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
             y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
         };
+        
+        // Scale UI elements based on cell size
+        this.buttonScale = Math.max(1, this.cellSize / 45);
         
         if (this.playerPos) {
             this.resetPlayerPosition();
@@ -613,25 +613,18 @@ class MazeGame {
     }
 
     drawMaze() {
-        // Clear canvas with darker background for unused space
-        this.ctx.fillStyle = '#1a1a2e'; // Dark navy blue for unused space
+        // Clear canvas with darker background
+        this.ctx.fillStyle = '#1a1a2e';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Calculate actual maze size in pixels
-        const mazePixelSize = this.mazeSize * this.cellSize;
-        
-        // Center the maze in the canvas
-        const offsetX = (this.canvas.width - mazePixelSize) / 2;
-        const offsetY = (this.canvas.height - mazePixelSize) / 2;
-
         // Draw paths with lighter color
-        this.ctx.fillStyle = '#4a5fc1'; // Cool blue for paths
+        this.ctx.fillStyle = '#4a5fc1';
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 0) {
                     this.ctx.fillRect(
-                        offsetX + x * this.cellSize,
-                        offsetY + y * this.cellSize,
+                        this.canvasOffset.x + x * this.cellSize,
+                        this.canvasOffset.y + y * this.cellSize,
                         this.cellSize,
                         this.cellSize
                     );
@@ -639,40 +632,38 @@ class MazeGame {
             }
         }
 
-        // Set up wall drawing
+        // Draw walls with increased thickness
         this.ctx.strokeStyle = '#000';
         this.ctx.lineWidth = this.wallThickness;
-        this.ctx.lineCap = 'butt';
+        this.ctx.lineCap = 'square';
         this.ctx.lineJoin = 'miter';
         this.ctx.beginPath();
 
-        // Adjust for wall thickness to center the walls
-        const halfWall = this.wallThickness / 2;
-
+        // Draw walls with proper positioning
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 1) {
-                    const cellX = offsetX + x * this.cellSize;
-                    const cellY = offsetY + y * this.cellSize;
+                    const cellX = this.canvasOffset.x + x * this.cellSize;
+                    const cellY = this.canvasOffset.y + y * this.cellSize;
                     
                     // Draw horizontal walls
                     if (y === 0 || this.maze[y-1][x] === 0) {
-                        this.ctx.moveTo(cellX - halfWall, cellY);
-                        this.ctx.lineTo(cellX + this.cellSize + halfWall, cellY);
+                        this.ctx.moveTo(cellX, cellY);
+                        this.ctx.lineTo(cellX + this.cellSize, cellY);
                     }
                     if (y === this.mazeSize-1 || this.maze[y+1][x] === 0) {
-                        this.ctx.moveTo(cellX - halfWall, cellY + this.cellSize);
-                        this.ctx.lineTo(cellX + this.cellSize + halfWall, cellY + this.cellSize);
+                        this.ctx.moveTo(cellX, cellY + this.cellSize);
+                        this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
                     
                     // Draw vertical walls
                     if (x === 0 || this.maze[y][x-1] === 0) {
-                        this.ctx.moveTo(cellX, cellY - halfWall);
-                        this.ctx.lineTo(cellX, cellY + this.cellSize + halfWall);
+                        this.ctx.moveTo(cellX, cellY);
+                        this.ctx.lineTo(cellX, cellY + this.cellSize);
                     }
                     if (x === this.mazeSize-1 || this.maze[y][x+1] === 0) {
-                        this.ctx.moveTo(cellX + this.cellSize, cellY - halfWall);
-                        this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize + halfWall);
+                        this.ctx.moveTo(cellX + this.cellSize, cellY);
+                        this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
                 }
             }
@@ -794,15 +785,15 @@ class MazeGame {
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.moveTo(offsetX + this.endPos.x, offsetY + this.endPos.y + this.playerSize * 2);
-        this.ctx.lineTo(offsetX + this.endPos.x, offsetY + this.endPos.y - this.playerSize * 2);
+        this.ctx.moveTo(this.canvasOffset.x + this.endPos.x, this.canvasOffset.y + this.endPos.y + this.playerSize * 2);
+        this.ctx.lineTo(this.canvasOffset.x + this.endPos.x, this.canvasOffset.y + this.endPos.y - this.playerSize * 2);
         this.ctx.stroke();
 
         // Draw flag
         const flagWidth = this.playerSize * 3;
         const flagHeight = this.playerSize * 2;
-        const flagX = offsetX + this.endPos.x;
-        const flagY = offsetY + this.endPos.y - this.playerSize * 2;
+        const flagX = this.canvasOffset.x + this.endPos.x;
+        const flagY = this.canvasOffset.y + this.endPos.y - this.playerSize * 2;
 
         this.ctx.beginPath();
         this.ctx.moveTo(flagX, flagY);
@@ -827,8 +818,8 @@ class MazeGame {
         this.ctx.fillStyle = '#fff';
             this.ctx.beginPath();
         this.ctx.arc(
-            offsetX + this.playerPos.x,
-            offsetY + this.playerPos.y,
+            this.canvasOffset.x + this.playerPos.x,
+            this.canvasOffset.y + this.playerPos.y,
             this.playerSize,
             0,
             Math.PI * 2
