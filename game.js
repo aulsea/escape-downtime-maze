@@ -71,29 +71,30 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        const containerHeight = window.innerHeight * 0.8; // Use 80% of viewport height
 
-        // Calculate the ideal cell size based on container dimensions
-        const idealCellSize = Math.floor(Math.min(containerWidth, containerHeight) / (this.mazeSize + 2));
+        // Calculate the ideal cell size based on container dimensions and maze size
+        const horizontalCellSize = Math.floor((containerWidth - 20) / (this.mazeSize + 1));
+        const verticalCellSize = Math.floor((containerHeight - 20) / (this.mazeSize + 3)); // Extra space for button
         
-        // Ensure minimum cell size for tablets
-        this.cellSize = Math.max(50, idealCellSize);
+        // Use the smaller of the two sizes to ensure maze fits
+        this.cellSize = Math.max(40, Math.min(horizontalCellSize, verticalCellSize));
         
         // Scale other dimensions based on cell size
         this.wallThickness = Math.max(6, Math.floor(this.cellSize * 0.12));
         this.playerSize = Math.max(12, Math.floor(this.cellSize * 0.24));
 
         // Calculate the total maze size including padding
-        const totalMazeSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 2);
+        const totalMazeSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 4);
         
         // Set canvas size to fit maze with padding
         this.canvas.width = totalMazeSize;
-        this.canvas.height = totalMazeSize;
+        this.canvas.height = totalMazeSize + (this.cellSize * 2); // Extra space for button
         
         // Center the maze in the canvas
         this.canvasOffset = {
-            x: this.wallThickness,
-            y: this.wallThickness
+            x: this.wallThickness * 2,
+            y: this.wallThickness * 2
         };
 
         // Update positions with new cell size
@@ -107,7 +108,7 @@ class MazeGame {
         };
         
         // Scale UI elements based on cell size
-        this.buttonScale = Math.max(1, this.cellSize / 45);
+        this.buttonScale = Math.max(1, this.cellSize / 40);
         
         if (this.playerPos) {
             this.resetPlayerPosition();
@@ -491,38 +492,41 @@ class MazeGame {
 
     drawGameOverScreen() {
         // Semi-transparent overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Increased overlay opacity
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Scale text and button based on canvas size
+        // Scale text and button based on cell size
         const fontSize = Math.max(24, Math.floor(24 * this.buttonScale));
-        const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
-        const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
+        const buttonWidth = Math.max(160, Math.floor(160 * this.buttonScale));
+        const buttonHeight = Math.max(60, Math.floor(60 * this.buttonScale));
+
+        // Position message and button with more space
+        const messageY = this.canvas.height / 2 - buttonHeight * 1.5;
+        const buttonY = messageY + buttonHeight * 1.5;
 
         // Draw message
         this.ctx.fillStyle = '#9ab3f5';
         this.ctx.font = `bold ${fontSize}px Inter`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - buttonHeight);
+        this.ctx.fillText('Keep trying!', this.canvas.width / 2, messageY);
 
         // Draw "Play Again" button with consistent styling
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 - buttonHeight / 2; // Centered vertically
-        
-        // Button background with gradient
-        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');
-        gradient.addColorStop(1, '#3d4fa3');
         
         // Button shadow
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         this.ctx.shadowBlur = 15;
         this.ctx.shadowOffsetY = 4;
         
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
+        
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
         this.ctx.fill();
         
         // Reset shadow
@@ -531,46 +535,57 @@ class MazeGame {
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
-        const buttonFontSize = Math.max(18, Math.floor(18 * this.buttonScale));
+        const buttonFontSize = Math.max(22, Math.floor(22 * this.buttonScale));
         this.ctx.fillStyle = '#ffffff';
         this.ctx.font = `bold ${buttonFontSize}px Inter`;
         this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + buttonFontSize/3);
+
+        // Store button position for hit detection
+        this.playAgainButton = {
+            x: buttonX,
+            y: buttonY,
+            width: buttonWidth,
+            height: buttonHeight
+        };
     }
 
     drawSuccessScreen() {
         // Semi-transparent overlay
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // Increased overlay opacity
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Scale text and button based on canvas size
+        // Scale text and button based on cell size
         const fontSize = Math.max(24, Math.floor(24 * this.buttonScale));
-        const buttonWidth = Math.max(140, Math.floor(140 * this.buttonScale));
-        const buttonHeight = Math.max(50, Math.floor(50 * this.buttonScale));
+        const buttonWidth = Math.max(160, Math.floor(160 * this.buttonScale));
+        const buttonHeight = Math.max(60, Math.floor(60 * this.buttonScale));
 
-        // Draw success message
+        // Position message and button with more space
+        const messageY = this.canvas.height / 2 - buttonHeight * 1.5;
+        const buttonY = messageY + buttonHeight * 1.5;
+
+        // Draw message
         this.ctx.fillStyle = '#9ab3f5';
         this.ctx.font = `bold ${fontSize}px Inter`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - buttonHeight);
+        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, messageY);
 
         // Draw "Play Again" button with consistent styling
         const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 - buttonHeight / 2; // Centered vertically
-        
-        // Button background with gradient
-        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');
-        gradient.addColorStop(1, '#3d4fa3');
         
         // Button shadow
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         this.ctx.shadowBlur = 15;
         this.ctx.shadowOffsetY = 4;
         
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
+        
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
         this.ctx.fill();
         
         // Reset shadow
@@ -579,10 +594,18 @@ class MazeGame {
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
-        const buttonFontSize = Math.max(18, Math.floor(18 * this.buttonScale));
+        const buttonFontSize = Math.max(22, Math.floor(22 * this.buttonScale));
         this.ctx.fillStyle = '#ffffff';
         this.ctx.font = `bold ${buttonFontSize}px Inter`;
         this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + buttonFontSize/3);
+
+        // Store button position for hit detection
+        this.playAgainButton = {
+            x: buttonX,
+            y: buttonY,
+            width: buttonWidth,
+            height: buttonHeight
+        };
     }
 
     createFinishPattern() {

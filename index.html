@@ -55,10 +55,12 @@
             border-radius: 10px;
             margin: 10px 0;
             position: relative;
-            aspect-ratio: 1;
             width: 100%;
             max-width: 700px;
             margin: 0 auto;
+            aspect-ratio: auto;
+            height: auto;
+            overflow: visible;
         }
 
         canvas {
@@ -66,7 +68,8 @@
             border-radius: 5px;
             touch-action: none;
             width: 100%;
-            height: 100%;
+            height: auto;
+            display: block;
         }
 
         .success-modal {
@@ -193,31 +196,22 @@
             background: #5b6fd2;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .game-container {
-                padding: 0.5rem;
+                padding: 10px;
+                width: 98%;
             }
 
-            h1 {
-                font-size: 1.5em;
+            #maze-container {
+                padding: 5px;
+                margin: 5px auto;
             }
 
-            .subtitle {
-                font-size: 1em;
-            }
-
-            .success-modal {
-                width: 85%;
-                padding: 1.5rem;
-            }
-
-            .welcome-modal {
-                width: 85%;
-                padding: 1.5rem;
-            }
-
-            .welcome-modal p {
-                font-size: 1em;
+            canvas {
+                max-height: 80vh;
+                width: auto;
+                max-width: 100%;
+                margin: 0 auto;
             }
         }
     </style>
