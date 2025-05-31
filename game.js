@@ -9,7 +9,8 @@ class MazeGame {
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
-        this.maxTrailLength = 20;
+        this.maxTrailLength = 15;
+        this.trailDuration = 1000;
         this.modalTimeout = null;
         this.countdownInterval = null;
         this.gameStarted = false;
@@ -26,7 +27,10 @@ class MazeGame {
         // Initialize game state
         this.maze = [];
         this.playerPos = { ...this.startPosition };
-        this.trail = [{ ...this.startPosition }];
+        this.trail = [{
+            ...this.startPosition,
+            timestamp: performance.now()
+        }];
         this.targetPos = { ...this.startPosition };
         this.endPos = { 
             x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
@@ -64,38 +68,52 @@ class MazeGame {
 
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
+        
+        // Get the device pixel ratio for high DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Calculate available space
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
+        const viewportHeight = window.innerHeight;
         
         // Calculate the maximum size that would fit on the screen
+        // Leave more space for margins on tablets
         const maxSize = Math.min(
             containerWidth,
             containerHeight,
-            // Ensure it doesn't exceed 90% of the viewport height on tablets
-            window.innerHeight * 0.9
+            // Use 85% of viewport height to ensure full visibility
+            viewportHeight * 0.85
         );
 
-        // Set canvas size
-        const size = Math.min(maxSize - 20, 600); // Cap maximum size at 600px
-        this.canvas.width = size;
-        this.canvas.height = size;
+        // Set display size (CSS pixels)
+        const displaySize = Math.min(maxSize - 20, 600);
+        this.canvas.style.width = `${displaySize}px`;
+        this.canvas.style.height = `${displaySize}px`;
+        
+        // Set actual size in memory (scaled for retina)
+        this.canvas.width = Math.floor(displaySize * dpr);
+        this.canvas.height = Math.floor(displaySize * dpr);
+        
+        // Scale all drawing operations by the dpr
+        this.ctx.scale(dpr, dpr);
         
         // Calculate cell size based on available space
-        const calculatedCellSize = Math.floor((size - this.wallThickness) / this.mazeSize);
-        this.cellSize = Math.min(calculatedCellSize, 35); // Cap maximum cell size at 35px
+        const calculatedCellSize = Math.floor((displaySize - this.wallThickness) / this.mazeSize);
+        this.cellSize = Math.min(calculatedCellSize, 35);
         
-        // Recalculate player and wall sizes based on cell size
-        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 5); // 20% of cell size, minimum 5px
-        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 2); // 10% of cell size, minimum 2px
+        // Ensure minimum sizes for visibility
+        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 5);
+        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 2);
         
-        // Calculate canvas offset for centered maze
+        // Calculate maze offset to center it
         const totalMazeSize = this.mazeSize * this.cellSize;
         this.canvasOffset = {
-            x: (this.canvas.width - totalMazeSize) / 2,
-            y: (this.canvas.height - totalMazeSize) / 2
+            x: (displaySize - totalMazeSize) / 2,
+            y: (displaySize - totalMazeSize) / 2
         };
 
-        // Update positions with new cell size
+        // Update positions
         this.startPosition = {
             x: this.cellSize * 1.5,
             y: this.cellSize * 1.5
@@ -283,8 +301,17 @@ class MazeGame {
                 this.playerPos.x = newX;
                 this.playerPos.y = newY;
                 
-                // Add new position to trail
-                this.trail.push({ x: this.playerPos.x, y: this.playerPos.y });
+                // Add new position to trail with timestamp
+                const now = performance.now();
+                this.trail.push({
+                    x: this.playerPos.x,
+                    y: this.playerPos.y,
+                    timestamp: now
+                });
+                
+                // Remove old trail points
+                const cutoffTime = now - this.trailDuration;
+                this.trail = this.trail.filter(point => point.timestamp > cutoffTime);
                 
                 // Keep trail at maximum length
                 if (this.trail.length > this.maxTrailLength) {
@@ -299,8 +326,8 @@ class MazeGame {
                 
                 if (distanceToEnd < this.cellSize * 0.5) {
                     this.isGameComplete = true;
-                    this.canMove = false; // Disable movement immediately on win
-                    this.targetPos = { ...this.playerPos }; // Stop any ongoing movement
+                    this.canMove = false;
+                    this.targetPos = { ...this.playerPos };
                     this.showSuccessModal();
                 }
             } else {
@@ -437,7 +464,10 @@ class MazeGame {
     resetPlayerPosition() {
         this.playerPos = { ...this.startPosition };
         this.targetPos = { ...this.startPosition };
-        this.trail = [{ ...this.startPosition }];
+        this.trail = [{
+            ...this.startPosition,
+            timestamp: performance.now()
+        }];
     }
 
     restart() {
@@ -472,91 +502,99 @@ class MazeGame {
     }
 
     drawGameOverScreen() {
+        const dpr = window.devicePixelRatio || 1;
+        
         // Semi-transparent overlay
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, this.canvas.width/dpr, this.canvas.height/dpr);
 
         // Draw message
-        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
-        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
+        this.ctx.fillStyle = '#9ab3f5';
+        this.ctx.font = 'bold 24px Inter';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Keep trying!', this.canvas.width / 2, this.canvas.height / 2 - 20);
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('Keep trying!', this.canvas.width/(2*dpr), this.canvas.height/(2*dpr) - 40);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 120;
-        const buttonHeight = 45;
-        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 + 20;
-        
-        // Button background with gradient
-        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
-        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        const buttonWidth = Math.min(160, this.canvas.width/(3*dpr));
+        const buttonHeight = 50;
+        const buttonX = this.canvas.width/(2*dpr) - buttonWidth/2;
+        const buttonY = this.canvas.height/(2*dpr);
         
         // Button shadow
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetY = 2;
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowOffsetY = 3;
+        
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
         
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         this.ctx.fill();
         
-        // Reset shadow
+        // Reset shadow for text
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '600 16px Inter';  // Semi-bold weight
-        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
+        this.ctx.font = '600 18px Inter';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('Play Again', this.canvas.width/(2*dpr), buttonY + buttonHeight/2);
     }
 
     drawSuccessScreen() {
+        const dpr = window.devicePixelRatio || 1;
+        
         // Semi-transparent overlay
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, this.canvas.width/dpr, this.canvas.height/dpr);
 
         // Draw success message
-        this.ctx.fillStyle = '#9ab3f5';  // Light blue color matching the game's style
-        this.ctx.font = 'bold 24px Inter';  // Using Inter font family
+        this.ctx.fillStyle = '#9ab3f5';
+        this.ctx.font = 'bold 24px Inter';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Data passed successfully!', this.canvas.width / 2, this.canvas.height / 2 - 20);
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('Data passed successfully!', this.canvas.width/(2*dpr), this.canvas.height/(2*dpr) - 40);
 
         // Draw "Play Again" button with consistent styling
-        const buttonWidth = 120;
-        const buttonHeight = 45;
-        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height / 2 + 20;
-        
-        // Button background with gradient
-        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        gradient.addColorStop(0, '#4a5fc1');    // Base blue color
-        gradient.addColorStop(1, '#3d4fa3');    // Slightly darker blue for depth
+        const buttonWidth = Math.min(160, this.canvas.width/(3*dpr));
+        const buttonHeight = 50;
+        const buttonX = this.canvas.width/(2*dpr) - buttonWidth/2;
+        const buttonY = this.canvas.height/(2*dpr);
         
         // Button shadow
         this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetY = 2;
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowOffsetY = 3;
+        
+        // Button background with gradient
+        const gradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+        gradient.addColorStop(0, '#4a5fc1');
+        gradient.addColorStop(1, '#3d4fa3');
         
         // Draw button background
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         this.ctx.fill();
         
-        // Reset shadow
+        // Reset shadow for text
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
         this.ctx.shadowOffsetY = 0;
         
         // Draw button text
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = '600 16px Inter';  // Semi-bold weight
-        this.ctx.fillText('Play Again', this.canvas.width / 2, buttonY + buttonHeight/2 + 6);
+        this.ctx.font = '600 18px Inter';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('Play Again', this.canvas.width/(2*dpr), buttonY + buttonHeight/2);
     }
 
     createFinishPattern() {
@@ -653,20 +691,35 @@ class MazeGame {
         }
         this.ctx.stroke();
 
-        // Draw trail
+        // Draw trail with fade effect
         if (this.trail.length > 1) {
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.lineWidth = this.playerSize;
+            const now = performance.now();
             this.ctx.lineCap = 'round';
             this.ctx.lineJoin = 'round';
-            this.ctx.beginPath();
-            this.ctx.moveTo(offsetX + this.trail[0].x, offsetY + this.trail[0].y);
             
+            // Draw trail segments with varying opacity
             for (let i = 1; i < this.trail.length; i++) {
-                this.ctx.lineTo(offsetX + this.trail[i].x, offsetY + this.trail[i].y);
+                const point = this.trail[i];
+                const prevPoint = this.trail[i - 1];
+                
+                // Calculate opacity based on age
+                const age = now - point.timestamp;
+                const opacity = Math.max(0, 1 - (age / this.trailDuration));
+                
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
+                this.ctx.lineWidth = this.playerSize;
+                
+                this.ctx.moveTo(
+                    this.canvasOffset.x + prevPoint.x,
+                    this.canvasOffset.y + prevPoint.y
+                );
+                this.ctx.lineTo(
+                    this.canvasOffset.x + point.x,
+                    this.canvasOffset.y + point.y
+                );
+                this.ctx.stroke();
             }
-            
-            this.ctx.stroke();
         }
 
         // Draw flag at end point
