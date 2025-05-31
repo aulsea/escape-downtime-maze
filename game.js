@@ -2,10 +2,10 @@ class MazeGame {
     constructor() {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.mazeSize = 15;
-        this.cellSize = 35;
-        this.wallThickness = 3;
-        this.playerSize = 7;
+        this.mazeSize = 11;
+        this.cellSize = 40;
+        this.wallThickness = 4;
+        this.playerSize = 8;
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
@@ -72,25 +72,25 @@ class MazeGame {
         // Get the device pixel ratio for high DPI displays
         const dpr = window.devicePixelRatio || 1;
         
+        // Calculate the minimum size needed for the maze
+        const minRequiredSize = (this.mazeSize * this.cellSize) + (this.wallThickness * 2);
+        
         // Calculate available space
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
         const viewportHeight = window.innerHeight;
         
-        // Calculate the minimum size needed for the maze
-        const minRequiredSize = this.mazeSize * this.cellSize + (this.wallThickness * 2);
-        
         // Calculate the maximum size that would fit on the screen
         const maxSize = Math.min(
             containerWidth,
             containerHeight,
-            viewportHeight * 0.85
+            viewportHeight * 0.8  // Reduced from 0.85 to 0.8 for better visibility
         );
 
         // Set display size (CSS pixels)
         const displaySize = Math.max(
-            Math.min(maxSize - 20, 600),
-            minRequiredSize
+            minRequiredSize,
+            Math.min(maxSize - 40, 500)  // Reduced max size from 600 to 500, increased padding
         );
         
         // Update container size to match
@@ -110,17 +110,17 @@ class MazeGame {
         
         // Calculate cell size based on available space
         const calculatedCellSize = Math.floor((displaySize - this.wallThickness * 2) / this.mazeSize);
-        this.cellSize = Math.min(Math.max(calculatedCellSize, 30), 35); // Keep cell size between 30 and 35
+        this.cellSize = Math.min(Math.max(calculatedCellSize, 35), 40); // Keep cell size between 35 and 40
         
         // Ensure minimum sizes for visibility
-        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 6);
-        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 3);
+        this.playerSize = Math.max(Math.floor(this.cellSize * 0.2), 8);
+        this.wallThickness = Math.max(Math.floor(this.cellSize * 0.1), 4);
         
         // Calculate maze offset to center it
         const totalMazeSize = this.mazeSize * this.cellSize;
         this.canvasOffset = {
-            x: (displaySize - totalMazeSize) / 2,
-            y: (displaySize - totalMazeSize) / 2
+            x: Math.max((displaySize - totalMazeSize) / 2, this.wallThickness),
+            y: Math.max((displaySize - totalMazeSize) / 2, this.wallThickness)
         };
 
         // Update positions
@@ -501,7 +501,7 @@ class MazeGame {
 
         // Reset to level 1
         this.currentLevel = 1;
-        this.mazeSize = 15;
+        this.mazeSize = 11;  // Keep consistent with constructor
         this.moveSpeed = 0.15;
 
         // Reset game state
