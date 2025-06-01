@@ -881,26 +881,120 @@ class MazeGame {
         const flagX = this.canvasOffset.x + this.endPos.x;
         const flagY = this.canvasOffset.y + this.endPos.y;
         
-        // Draw flag pole
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-        this.ctx.moveTo(flagX, flagY + this.playerSize * 2);
-        this.ctx.lineTo(flagX, flagY - this.playerSize * 2);
-        this.ctx.stroke();
-
-        // Draw flag
-        const flagWidth = this.playerSize * 3;
-        const flagHeight = this.playerSize * 2;
+        // Draw stylish flag pole with gradient
+        const poleGradient = this.ctx.createLinearGradient(
+            flagX - 2, flagY - this.playerSize * 2,
+            flagX + 2, flagY + this.playerSize * 2
+        );
+        poleGradient.addColorStop(0, '#ffffff');
+        poleGradient.addColorStop(0.3, '#e0e0e0');
+        poleGradient.addColorStop(0.7, '#c0c0c0');
+        poleGradient.addColorStop(1, '#a0a0a0');
         
+        this.ctx.fillStyle = poleGradient;
+        this.ctx.fillRect(flagX - 2, flagY - this.playerSize * 2, 4, this.playerSize * 4);
+        
+        // Add pole highlight
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.fillRect(flagX - 1, flagY - this.playerSize * 2, 1, this.playerSize * 4);
+
+        // Draw stylish flag with animation
+        const flagWidth = this.playerSize * 3.5;
+        const flagHeight = this.playerSize * 2;
+        const time = performance.now() * 0.003; // Animation speed
+        
+        // Create flag shape with wave effect
         this.ctx.beginPath();
         this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        
+        // Top edge with wave
+        for (let i = 0; i <= flagWidth; i += 4) {
+            const waveOffset = Math.sin(time + i * 0.1) * 2;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
+        }
+        
+        // Right edge
         this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
-        this.ctx.lineTo(flagX, flagY);
+        
+        // Bottom edge with wave
+        for (let i = flagWidth; i >= 0; i -= 4) {
+            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
+            this.ctx.lineTo(flagX + i, flagY + waveOffset);
+        }
+        
+        this.ctx.closePath();
+        
+        // Create flag gradient
+        const flagGradient = this.ctx.createLinearGradient(
+            flagX, flagY - this.playerSize * 2,
+            flagX + flagWidth, flagY
+        );
+        flagGradient.addColorStop(0, '#ff6b6b');
+        flagGradient.addColorStop(0.3, '#ff8e8e');
+        flagGradient.addColorStop(0.6, '#ff4757');
+        flagGradient.addColorStop(1, '#ff3742');
+        
+        // Add flag glow
+        this.ctx.shadowColor = 'rgba(255, 107, 107, 0.6)';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
+        
+        // Fill flag
+        this.ctx.fillStyle = flagGradient;
+        this.ctx.fill();
+        
+        // Reset shadow for flag details
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Add flag details (stripes)
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        
+        // Horizontal stripes
+        for (let i = 1; i < 3; i++) {
+            const stripeY = flagY - this.playerSize * 2 + (flagHeight / 3) * i;
+            this.ctx.moveTo(flagX, stripeY);
+            for (let j = 0; j <= flagWidth; j += 4) {
+                const waveOffset = Math.sin(time + j * 0.1) * 1.5;
+                this.ctx.lineTo(flagX + j, stripeY + waveOffset);
+            }
+        }
+        this.ctx.stroke();
+        
+        // Add flag border
+        this.ctx.beginPath();
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        
+        // Recreate the flag shape for border
+        for (let i = 0; i <= flagWidth; i += 4) {
+            const waveOffset = Math.sin(time + i * 0.1) * 2;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
+        }
+        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
+        for (let i = flagWidth; i >= 0; i -= 4) {
+            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
+            this.ctx.lineTo(flagX + i, flagY + waveOffset);
+        }
         this.ctx.closePath();
         
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+        
+        // Add flag highlight
+        this.ctx.beginPath();
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        for (let i = 0; i <= flagWidth * 0.3; i += 2) {
+            const waveOffset = Math.sin(time + i * 0.1) * 1;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset + i * 0.1);
+        }
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        this.ctx.lineWidth = 2;
         this.ctx.stroke();
 
         // Draw player with enhanced glow
