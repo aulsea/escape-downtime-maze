@@ -217,64 +217,7 @@ class MazeGame {
     }
 
     checkWallCollision(x, y) {
-        // Get the current cell and its neighbors
-        const cellX = Math.floor(x / this.cellSize);
-        const cellY = Math.floor(y / this.cellSize);
-        
-        // Check each wall that could be near the player
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                const checkX = cellX + dx;
-                const checkY = cellY + dy;
-                
-                // Skip if outside maze
-                if (checkX < 0 || checkX >= this.mazeSize || 
-                    checkY < 0 || checkY >= this.mazeSize) {
-                    continue;
-                }
-                
-                // If this is a wall cell
-                if (this.maze[checkY][checkX] === 1) {
-                    // Get wall edges
-                    const wallLeft = checkX * this.cellSize;
-                    const wallRight = (checkX + 1) * this.cellSize;
-                    const wallTop = checkY * this.cellSize;
-                    const wallBottom = (checkY + 1) * this.cellSize;
-                    
-                    // Check if wall exists in each direction
-                    const hasTopWall = checkY === 0 || this.maze[checkY-1][checkX] === 0;
-                    const hasBottomWall = checkY === this.mazeSize-1 || this.maze[checkY+1][checkX] === 0;
-                    const hasLeftWall = checkX === 0 || this.maze[checkY][checkX-1] === 0;
-                    const hasRightWall = checkX === this.mazeSize-1 || this.maze[checkY][checkX+1] === 0;
-                    
-                    // Only check collision with walls that exist
-                    if (hasTopWall) {
-                        const dist = Math.abs(y - wallTop);
-                        if (dist < this.playerSize && x >= wallLeft && x <= wallRight) {
-                            return true;
-                        }
-                    }
-                    if (hasBottomWall) {
-                        const dist = Math.abs(y - wallBottom);
-                        if (dist < this.playerSize && x >= wallLeft && x <= wallRight) {
-                            return true;
-                        }
-                    }
-                    if (hasLeftWall) {
-                        const dist = Math.abs(x - wallLeft);
-                        if (dist < this.playerSize && y >= wallTop && y <= wallBottom) {
-                            return true;
-                        }
-                    }
-                    if (hasRightWall) {
-                        const dist = Math.abs(x - wallRight);
-                        if (dist < this.playerSize && y >= wallTop && y <= wallBottom) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
+        // Collision detection disabled - player can move through walls
         return false;
     }
 
@@ -815,7 +758,7 @@ class MazeGame {
         // Draw flag pole
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
         this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
+            this.ctx.beginPath();
         this.ctx.moveTo(flagX, flagY + this.playerSize * 2);
         this.ctx.lineTo(flagX, flagY - this.playerSize * 2);
         this.ctx.stroke();
@@ -838,7 +781,7 @@ class MazeGame {
         this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)'; // Increased player glow
         this.ctx.shadowBlur = 20;
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.beginPath();
+            this.ctx.beginPath();
         this.ctx.arc(
             this.canvasOffset.x + this.playerPos.x,
             this.canvasOffset.y + this.playerPos.y,
@@ -846,7 +789,7 @@ class MazeGame {
             0,
             Math.PI * 2
         );
-        this.ctx.fill();
+            this.ctx.fill();
         
         // Reset shadow
         this.ctx.shadowColor = 'transparent';
