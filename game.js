@@ -2,10 +2,10 @@ class MazeGame {
     constructor() {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.mazeSize = 16; // Changed from 15 to 16
-        this.cellSize = 46;  // Slightly adjusted for 16x16
-        this.wallThickness = 2; // Thinner walls for outline style
-        this.playerSize = 10;  // Reduced from 14
+        this.mazeSize = 16;
+        this.cellSize = 46;
+        this.wallThickness = 2;
+        this.playerSize = 10;
         this.moveSpeed = 0.15;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
@@ -27,6 +27,16 @@ class MazeGame {
         this.canvasOffset = { x: 0, y: 0 };
         this.buttonScale = 1;
         
+        // New maze elements
+        this.bonusItems = []; // 💾 Backup, ⚡️ Failover, ☁️ Cloud switch
+        this.obstacles = [];  // 🟥 Downtime Trap, ⛔️ Data Loss Wall, 💣 System Crash
+        this.collectedItems = [];
+        this.score = 0;
+        this.retryCount = 0;
+        
+        // Animation timing
+        this.animationTime = 0;
+        
         // Set canvas size based on device
         this.setupCanvasSize();
         
@@ -36,18 +46,19 @@ class MazeGame {
         this.trail = [{ ...this.startPosition }];
         this.targetPos = { ...this.startPosition };
         this.endPos = { 
-            x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
-            y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
+            x: (this.mazeSize / 2) * this.cellSize, // Center position for Zephyrus Hub
+            y: (this.mazeSize / 2) * this.cellSize
         };
         this.isGameComplete = false;
         this.isGameOver = false;
         this.showGameOverScreen = false;
-        this.showSuccessScreen = false; // Add success screen flag
+        this.showSuccessScreen = false;
         this.canMove = false;
         this.lastTime = performance.now();
         
-        // Generate the maze
+        // Generate the maze with new elements
         this.generateMaze();
+        this.generateMazeElements();
         
         // Set up touch controls
         this.setupControls();
@@ -216,6 +227,69 @@ class MazeGame {
         }
     }
 
+    generateMazeElements() {
+        // Clear existing elements
+        this.bonusItems = [];
+        this.obstacles = [];
+        this.collectedItems = [];
+        
+        // Generate bonus items in random open spaces
+        const bonusTypes = ['backup', 'failover', 'cloud'];
+        const bonusCount = Math.floor(this.mazeSize * 0.15); // ~2-3 items
+        
+        let bonusPlaced = 0;
+        while (bonusPlaced < bonusCount) {
+            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            
+            // Check if position is open and not near start/end
+            if (this.maze[y][x] === 0 && 
+                this.getDistance(x, y, 1, 1) > 2 && // Not near start
+                this.getDistance(x, y, this.mazeSize/2, this.mazeSize/2) > 2) { // Not near center
+                
+                const type = bonusTypes[bonusPlaced % bonusTypes.length];
+                this.bonusItems.push({
+                    x: x * this.cellSize + this.cellSize / 2,
+                    y: y * this.cellSize + this.cellSize / 2,
+                    type: type,
+                    collected: false,
+                    animationOffset: Math.random() * Math.PI * 2
+                });
+                bonusPlaced++;
+            }
+        }
+        
+        // Generate obstacles in strategic positions
+        const obstacleTypes = ['downtime', 'dataloss', 'crash'];
+        const obstacleCount = Math.floor(this.mazeSize * 0.1); // ~1-2 obstacles
+        
+        let obstaclesPlaced = 0;
+        while (obstaclesPlaced < obstacleCount) {
+            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            
+            // Check if position is open and strategic
+            if (this.maze[y][x] === 0 && 
+                this.getDistance(x, y, 1, 1) > 3 && // Not too close to start
+                this.getDistance(x, y, this.mazeSize/2, this.mazeSize/2) > 2) { // Not near center
+                
+                const type = obstacleTypes[obstaclesPlaced % obstacleTypes.length];
+                this.obstacles.push({
+                    x: x * this.cellSize + this.cellSize / 2,
+                    y: y * this.cellSize + this.cellSize / 2,
+                    type: type,
+                    active: true,
+                    animationOffset: Math.random() * Math.PI * 2
+                });
+                obstaclesPlaced++;
+            }
+        }
+    }
+
+    getDistance(x1, y1, x2, y2) {
+        return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+    }
+
     checkWallCollision(x, y) {
         // Get the current cell and its neighbors
         const cellX = Math.floor(x / this.cellSize);
@@ -282,6 +356,9 @@ class MazeGame {
         // Don't update position if movement is disabled
         if (!this.canMove || !this.gameStarted || this.isGameComplete || this.isGameOver) return;
 
+        // Update animation timing
+        this.animationTime += deltaTime * 0.002;
+
         // First, check if player is currently in a wall and push them out
         if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
             this.pushPlayerOutOfWall();
@@ -296,7 +373,7 @@ class MazeGame {
         
         if (distance > 0.1) {
             // Limit maximum movement per frame to prevent jumping through walls
-            const maxMovePerFrame = this.cellSize * 0.25; // Reduced for better collision detection
+            const maxMovePerFrame = this.cellSize * 0.25;
             
             // Calculate movement this frame
             let moveX = dx * this.moveSpeed;
@@ -336,7 +413,7 @@ class MazeGame {
                 this.targetPos.x = this.playerPos.x;
             } else {
                 // Cannot move in either direction - try smaller movements
-                const smallMoveX = moveX * 0.1; // Much smaller movement
+                const smallMoveX = moveX * 0.1;
                 const smallMoveY = moveY * 0.1;
                 
                 if (!this.checkWallCollision(this.playerPos.x + smallMoveX, this.playerPos.y)) {
@@ -348,6 +425,12 @@ class MazeGame {
                     this.targetPos = { ...this.playerPos };
                 }
             }
+            
+            // Check collisions with bonus items
+            this.checkBonusItemCollisions();
+            
+            // Check collisions with obstacles
+            this.checkObstacleCollisions();
             
             // Add new position to trail with timestamp
             const currentTime = performance.now();
@@ -363,19 +446,119 @@ class MazeGame {
                 this.trail.shift();
             }
 
-            // Check for win condition
+            // Check for win condition at Zephyrus Hub (center)
             const distanceToEnd = Math.sqrt(
                 Math.pow(this.playerPos.x - this.endPos.x, 2) + 
                 Math.pow(this.playerPos.y - this.endPos.y, 2)
             );
             
-            if (distanceToEnd < this.cellSize * 0.5) {
+            if (distanceToEnd < this.cellSize * 0.6) {
                 this.isGameComplete = true;
                 this.canMove = false;
                 this.targetPos = { ...this.playerPos };
                 this.showSuccessModal();
             }
         }
+    }
+
+    checkBonusItemCollisions() {
+        for (let item of this.bonusItems) {
+            if (!item.collected) {
+                const distance = Math.sqrt(
+                    Math.pow(this.playerPos.x - item.x, 2) + 
+                    Math.pow(this.playerPos.y - item.y, 2)
+                );
+                
+                if (distance < this.playerSize + 12) { // Collection radius
+                    item.collected = true;
+                    this.collectedItems.push(item);
+                    this.score += 100;
+                    
+                    // Add collection effect (could add sound here)
+                    this.createCollectionEffect(item.x, item.y, item.type);
+                }
+            }
+        }
+    }
+
+    checkObstacleCollisions() {
+        for (let obstacle of this.obstacles) {
+            if (obstacle.active) {
+                const distance = Math.sqrt(
+                    Math.pow(this.playerPos.x - obstacle.x, 2) + 
+                    Math.pow(this.playerPos.y - obstacle.y, 2)
+                );
+                
+                if (distance < this.playerSize + 8) { // Collision radius
+                    // Handle different obstacle types
+                    switch (obstacle.type) {
+                        case 'downtime':
+                            this.handleDowntimeTrap();
+                            break;
+                        case 'dataloss':
+                            this.handleDataLossWall();
+                            break;
+                        case 'crash':
+                            this.handleSystemCrash();
+                            break;
+                    }
+                    obstacle.active = false; // Deactivate after collision
+                }
+            }
+        }
+    }
+
+    handleDowntimeTrap() {
+        // Slow player temporarily
+        this.moveSpeed *= 0.5;
+        setTimeout(() => {
+            this.moveSpeed = 0.15; // Reset to normal speed
+        }, 2000);
+        
+        this.createObstacleEffect('downtime');
+    }
+
+    handleDataLossWall() {
+        // Push player back and reset some progress
+        this.pushPlayerBack();
+        this.score = Math.max(0, this.score - 50);
+        
+        this.createObstacleEffect('dataloss');
+    }
+
+    handleSystemCrash() {
+        // Reset to start position
+        this.resetPlayerPosition();
+        this.retryCount++;
+        
+        this.createObstacleEffect('crash');
+    }
+
+    pushPlayerBack() {
+        // Push player back towards start
+        const backDistance = this.cellSize * 0.5;
+        const dx = this.startPosition.x - this.playerPos.x;
+        const dy = this.startPosition.y - this.playerPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0) {
+            const ratio = backDistance / distance;
+            this.playerPos.x += dx * ratio;
+            this.playerPos.y += dy * ratio;
+            this.targetPos = { ...this.playerPos };
+        }
+    }
+
+    createCollectionEffect(x, y, type) {
+        // Visual feedback for collecting items
+        // Could be enhanced with particles or animations
+        console.log(`Collected ${type} bonus!`);
+    }
+
+    createObstacleEffect(type) {
+        // Visual feedback for obstacle collisions
+        // Could be enhanced with screen shake or color effects
+        console.log(`Hit ${type} obstacle!`);
     }
 
     pushPlayerOutOfWall() {
@@ -547,17 +730,18 @@ class MazeGame {
         // Hide all modals
         this.hideModals();
 
-        // Keep current level if game over, reset to 1 if completing the game
-        if (!this.isGameComplete) {
-            // Keep the current level
-            this.generateMaze();
-        } else {
-            // Reset to level 1 only if completed successfully
-            this.currentLevel = 1;
-            this.generateMaze();
-        }
-
         // Reset game state
+        this.currentLevel = 1;
+        this.score = 0;
+        this.retryCount = 0;
+        this.collectedItems = [];
+        this.moveSpeed = 0.15; // Reset speed in case it was slowed
+        
+        // Regenerate maze and elements
+        this.generateMaze();
+        this.generateMazeElements();
+
+        // Reset game flags
         this.canMove = false;
         this.gameStarted = false;
         this.isGameOver = false;
@@ -821,51 +1005,46 @@ class MazeGame {
     }
 
     drawMaze() {
-        // Clear canvas with dark background
+        // Clear canvas with retro dark background
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw paths with subtle background
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-        for (let y = 0; y < this.mazeSize; y++) {
-            for (let x = 0; x < this.mazeSize; x++) {
-                if (this.maze[y][x] === 0) {
-                    this.ctx.fillRect(
-                        this.canvasOffset.x + x * this.cellSize,
-                        this.canvasOffset.y + y * this.cellSize,
-                        this.cellSize,
-                        this.cellSize
-                    );
-                }
-            }
-        }
+        // Draw maze walls with retro glow effect
+        this.ctx.save();
+        this.ctx.translate(this.canvasOffset.x, this.canvasOffset.y);
 
-        // Draw walls
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        // Draw walls with enhanced retro styling
+        this.ctx.strokeStyle = '#ffffff';
         this.ctx.lineWidth = this.wallThickness;
-        this.ctx.lineCap = 'square';
-        this.ctx.lineJoin = 'miter';
-        this.ctx.beginPath();
+        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.shadowBlur = 8;
 
+        this.ctx.beginPath();
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 1) {
-                    const cellX = this.canvasOffset.x + x * this.cellSize;
-                    const cellY = this.canvasOffset.y + y * this.cellSize;
+                    const cellX = x * this.cellSize;
+                    const cellY = y * this.cellSize;
                     
-                    if (y === 0 || this.maze[y-1][x] === 0) {
+                    // Enhanced wall drawing with more detail
+                    const hasTop = y === 0 || this.maze[y-1][x] === 0;
+                    const hasBottom = y === this.mazeSize-1 || this.maze[y+1][x] === 0;
+                    const hasLeft = x === 0 || this.maze[y][x-1] === 0;
+                    const hasRight = x === this.mazeSize-1 || this.maze[y][x+1] === 0;
+                    
+                    if (hasTop) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX + this.cellSize, cellY);
                     }
-                    if (y === this.mazeSize-1 || this.maze[y+1][x] === 0) {
+                    if (hasBottom) {
                         this.ctx.moveTo(cellX, cellY + this.cellSize);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
-                    if (x === 0 || this.maze[y][x-1] === 0) {
+                    if (hasLeft) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX, cellY + this.cellSize);
                     }
-                    if (x === this.mazeSize-1 || this.maze[y][x+1] === 0) {
+                    if (hasRight) {
                         this.ctx.moveTo(cellX + this.cellSize, cellY);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
@@ -873,147 +1052,264 @@ class MazeGame {
             }
         }
         this.ctx.stroke();
+        this.ctx.shadowBlur = 0;
+
+        // Draw bonus items with retro styling
+        this.drawBonusItems();
+        
+        // Draw obstacles with warning effects
+        this.drawObstacles();
+        
+        // Draw Zephyrus Hub at center
+        this.drawZephyrusHub();
 
         // Draw trail
         this.drawTrail();
 
-        // Draw finish point
-        const flagX = this.canvasOffset.x + this.endPos.x;
-        const flagY = this.canvasOffset.y + this.endPos.y;
-        
-        // Draw stylish flag pole with gradient
-        const poleGradient = this.ctx.createLinearGradient(
-            flagX - 2, flagY - this.playerSize * 2,
-            flagX + 2, flagY + this.playerSize * 2
-        );
-        poleGradient.addColorStop(0, '#ffffff');
-        poleGradient.addColorStop(0.3, '#e0e0e0');
-        poleGradient.addColorStop(0.7, '#c0c0c0');
-        poleGradient.addColorStop(1, '#a0a0a0');
-        
-        this.ctx.fillStyle = poleGradient;
-        this.ctx.fillRect(flagX - 2, flagY - this.playerSize * 2, 4, this.playerSize * 4);
-        
-        // Add pole highlight
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        this.ctx.fillRect(flagX - 1, flagY - this.playerSize * 2, 1, this.playerSize * 4);
+        // Draw player with enhanced retro glow
+        this.drawPlayer();
 
-        // Draw stylish flag with animation
-        const flagWidth = this.playerSize * 3.5;
-        const flagHeight = this.playerSize * 2;
-        const time = performance.now() * 0.003; // Animation speed
+        this.ctx.restore();
         
-        // Create flag shape with wave effect
-        this.ctx.beginPath();
-        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        // Draw UI elements
+        this.drawUI();
+    }
+
+    drawBonusItems() {
+        const time = this.animationTime;
         
-        // Top edge with wave
-        for (let i = 0; i <= flagWidth; i += 4) {
-            const waveOffset = Math.sin(time + i * 0.1) * 2;
-            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
-        }
-        
-        // Right edge
-        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
-        
-        // Bottom edge with wave
-        for (let i = flagWidth; i >= 0; i -= 4) {
-            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
-            this.ctx.lineTo(flagX + i, flagY + waveOffset);
-        }
-        
-        this.ctx.closePath();
-        
-        // Create flag gradient
-        const flagGradient = this.ctx.createLinearGradient(
-            flagX, flagY - this.playerSize * 2,
-            flagX + flagWidth, flagY
-        );
-        flagGradient.addColorStop(0, '#8db3ad');
-        flagGradient.addColorStop(0.3, '#76a89f');
-        flagGradient.addColorStop(0.6, '#689a94');
-        flagGradient.addColorStop(1, '#5a8579');
-        
-        // Add flag glow
-        this.ctx.shadowColor = 'rgba(104, 154, 148, 0.6)';
-        this.ctx.shadowBlur = 15;
-        this.ctx.shadowOffsetX = 2;
-        this.ctx.shadowOffsetY = 2;
-        
-        // Fill flag
-        this.ctx.fillStyle = flagGradient;
-        this.ctx.fill();
-        
-        // Reset shadow for flag details
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetX = 0;
-        this.ctx.shadowOffsetY = 0;
-        
-        // Add flag details (stripes)
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        
-        // Horizontal stripes
-        for (let i = 1; i < 3; i++) {
-            const stripeY = flagY - this.playerSize * 2 + (flagHeight / 3) * i;
-            this.ctx.moveTo(flagX, stripeY);
-            for (let j = 0; j <= flagWidth; j += 4) {
-                const waveOffset = Math.sin(time + j * 0.1) * 1.5;
-                this.ctx.lineTo(flagX + j, stripeY + waveOffset);
+        for (let item of this.bonusItems) {
+            if (!item.collected) {
+                const bounce = Math.sin(time + item.animationOffset) * 3;
+                const glow = Math.sin(time * 2 + item.animationOffset) * 0.3 + 0.7;
+                
+                this.ctx.save();
+                this.ctx.translate(item.x, item.y + bounce);
+                
+                // Draw glow effect
+                this.ctx.shadowColor = this.getBonusColor(item.type);
+                this.ctx.shadowBlur = 15 * glow;
+                this.ctx.globalAlpha = glow;
+                
+                // Draw icon based on type
+                this.drawBonusIcon(item.type);
+                
+                this.ctx.restore();
             }
         }
-        this.ctx.stroke();
-        
-        // Add flag border
-        this.ctx.beginPath();
-        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
-        
-        // Recreate the flag shape for border
-        for (let i = 0; i <= flagWidth; i += 4) {
-            const waveOffset = Math.sin(time + i * 0.1) * 2;
-            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
-        }
-        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
-        for (let i = flagWidth; i >= 0; i -= 4) {
-            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
-            this.ctx.lineTo(flagX + i, flagY + waveOffset);
-        }
-        this.ctx.closePath();
-        
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        this.ctx.lineWidth = 1.5;
-        this.ctx.stroke();
-        
-        // Add flag highlight
-        this.ctx.beginPath();
-        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
-        for (let i = 0; i <= flagWidth * 0.3; i += 2) {
-            const waveOffset = Math.sin(time + i * 0.1) * 1;
-            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset + i * 0.1);
-        }
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
+    }
 
-        // Draw player with enhanced glow
-        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)'; // Increased player glow
-        this.ctx.shadowBlur = 20;
-        this.ctx.fillStyle = '#ffffff';
-            this.ctx.beginPath();
-        this.ctx.arc(
-            this.canvasOffset.x + this.playerPos.x,
-            this.canvasOffset.y + this.playerPos.y,
-            this.playerSize,
-            0,
-            Math.PI * 2
-        );
-            this.ctx.fill();
+    drawBonusIcon(type) {
+        const size = 12;
+        this.ctx.fillStyle = this.getBonusColor(type);
         
-        // Reset shadow
-        this.ctx.shadowColor = 'transparent';
+        switch (type) {
+            case 'backup':
+                // 💾 Backup - Draw a floppy disk style icon
+                this.ctx.fillRect(-size/2, -size/2, size, size);
+                this.ctx.fillStyle = '#0a0a0a';
+                this.ctx.fillRect(-size/3, -size/3, size/1.5, size/4);
+                this.ctx.fillStyle = this.getBonusColor(type);
+                this.ctx.fillRect(-size/4, size/3, size/2, size/6);
+                break;
+                
+            case 'failover':
+                // ⚡️ Failover - Draw a lightning bolt
+                this.ctx.beginPath();
+                this.ctx.moveTo(-size/3, -size/2);
+                this.ctx.lineTo(size/6, -size/6);
+                this.ctx.lineTo(-size/6, -size/6);
+                this.ctx.lineTo(size/3, size/2);
+                this.ctx.lineTo(-size/6, size/6);
+                this.ctx.lineTo(size/6, size/6);
+                this.ctx.closePath();
+                this.ctx.fill();
+                break;
+                
+            case 'cloud':
+                // ☁️ Cloud switch - Draw a cloud
+                this.ctx.beginPath();
+                this.ctx.arc(-size/4, 0, size/3, 0, Math.PI * 2);
+                this.ctx.arc(size/4, 0, size/3, 0, Math.PI * 2);
+                this.ctx.arc(0, -size/4, size/2.5, 0, Math.PI * 2);
+                this.ctx.fill();
+                break;
+        }
+    }
+
+    getBonusColor(type) {
+        switch (type) {
+            case 'backup': return '#4CAF50';   // Green
+            case 'failover': return '#FFC107'; // Yellow/Gold
+            case 'cloud': return '#2196F3';    // Blue
+            default: return '#ffffff';
+        }
+    }
+
+    drawObstacles() {
+        const time = this.animationTime;
+        
+        for (let obstacle of this.obstacles) {
+            if (obstacle.active) {
+                const pulse = Math.sin(time * 3 + obstacle.animationOffset) * 0.2 + 0.8;
+                const rotation = time * 0.5 + obstacle.animationOffset;
+                
+                this.ctx.save();
+                this.ctx.translate(obstacle.x, obstacle.y);
+                this.ctx.rotate(rotation);
+                this.ctx.scale(pulse, pulse);
+                
+                // Draw warning glow
+                this.ctx.shadowColor = this.getObstacleColor(obstacle.type);
+                this.ctx.shadowBlur = 20;
+                this.ctx.globalAlpha = pulse;
+                
+                // Draw obstacle icon
+                this.drawObstacleIcon(obstacle.type);
+                
+                this.ctx.restore();
+            }
+        }
+    }
+
+    drawObstacleIcon(type) {
+        const size = 10;
+        this.ctx.fillStyle = this.getObstacleColor(type);
+        
+        switch (type) {
+            case 'downtime':
+                // 🟥 Downtime Trap - Draw a warning square
+                this.ctx.fillRect(-size/2, -size/2, size, size);
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = `bold ${size}px monospace`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('!', 0, size/4);
+                break;
+                
+            case 'dataloss':
+                // ⛔️ Data Loss Wall - Draw a prohibition sign
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(-size/3, -size/3);
+                this.ctx.lineTo(size/3, size/3);
+                this.ctx.stroke();
+                break;
+                
+            case 'crash':
+                // 💣 System Crash - Draw an X pattern
+                this.ctx.strokeStyle = this.getObstacleColor(type);
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(-size/2, -size/2);
+                this.ctx.lineTo(size/2, size/2);
+                this.ctx.moveTo(size/2, -size/2);
+                this.ctx.lineTo(-size/2, size/2);
+                this.ctx.stroke();
+                break;
+        }
+    }
+
+    getObstacleColor(type) {
+        switch (type) {
+            case 'downtime': return '#FF5722';  // Red-Orange
+            case 'dataloss': return '#F44336';  // Red
+            case 'crash': return '#9C27B0';     // Purple
+            default: return '#ffffff';
+        }
+    }
+
+    drawZephyrusHub() {
+        const time = performance.now() * 0.003;
+        const hubX = this.endPos.x;
+        const hubY = this.endPos.y;
+        
+        // Make sure center area is clear
+        const centerX = Math.floor(this.mazeSize / 2);
+        const centerY = Math.floor(this.mazeSize / 2);
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (centerX + dx >= 0 && centerX + dx < this.mazeSize &&
+                    centerY + dy >= 0 && centerY + dy < this.mazeSize) {
+                    this.maze[centerY + dy][centerX + dx] = 0;
+                }
+            }
+        }
+        
+        // Draw animated Zephyrus Hub
+        this.ctx.save();
+        this.ctx.translate(hubX, hubY);
+        
+        // Outer glow ring
+        const glowSize = this.cellSize * 0.8;
+        const glowPulse = Math.sin(time * 2) * 0.2 + 0.8;
+        this.ctx.shadowColor = '#689a94';
+        this.ctx.shadowBlur = 25 * glowPulse;
+        this.ctx.strokeStyle = 'rgba(104, 154, 148, 0.6)';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, glowSize/2, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Inner hub with Zephyrus colors
+        this.ctx.shadowBlur = 15;
+        this.ctx.fillStyle = '#689a94';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, glowSize/3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Hub details
         this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = `bold ${this.cellSize/4}px Hero_title`;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Z', 0, this.cellSize/12);
+        
+        this.ctx.restore();
+    }
+
+    drawPlayer() {
+        // Enhanced player with retro glow and trail effect
+        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.shadowBlur = 25;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(this.playerPos.x, this.playerPos.y, this.playerSize, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Player core
+        this.ctx.shadowBlur = 10;
+        this.ctx.fillStyle = '#e0e0e0';
+        this.ctx.beginPath();
+        this.ctx.arc(this.playerPos.x, this.playerPos.y, this.playerSize * 0.6, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.shadowBlur = 0;
+    }
+
+    drawUI() {
+        // Draw score and collected items in top corners
+        this.ctx.save();
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = `${this.cellSize/2}px Hero_title`;
+        this.ctx.textAlign = 'left';
+        
+        // Score display
+        this.ctx.fillText(`Score: ${this.score}`, 10, 30);
+        
+        // Collected items counter
+        this.ctx.fillText(`Items: ${this.collectedItems.length}/${this.bonusItems.length}`, 10, 60);
+        
+        // Speed indicator when slowed
+        if (this.moveSpeed < 0.15) {
+            this.ctx.fillStyle = '#FF5722';
+            this.ctx.fillText('SLOWED!', 10, 90);
+        }
+        
+        this.ctx.restore();
     }
 
     animate(currentTime) {
@@ -1034,40 +1330,7 @@ class MazeGame {
         const modal = document.getElementById('successModal');
         const overlay = document.getElementById('modalOverlay');
         const countdown = document.getElementById('countdown');
-        let timeLeft = 15; // Increased from 10 to 15 seconds
-
-        // If this is level 1, proceed to level 2
-        if (this.currentLevel === 1) {
-            this.currentLevel = 2;
-            this.canMove = false;
-            this.gameStarted = false;
-            this.generateMaze();
-            this.resetPlayerPosition();
-            
-            // Create level 2 modal
-            let levelMsg = document.getElementById('level2Modal');
-            if (!levelMsg) {
-                levelMsg = document.createElement('div');
-                levelMsg.id = 'level2Modal';
-                levelMsg.className = 'modal';
-                levelMsg.innerHTML = '<h2>Level 2</h2>';
-                document.getElementById('modal-container').appendChild(levelMsg);
-            }
-            
-            // Show level 2 modal
-            document.getElementById('modalOverlay').style.display = 'block';
-            levelMsg.style.display = 'block';
-            
-            setTimeout(() => {
-                levelMsg.style.display = 'none';
-                document.getElementById('modalOverlay').style.display = 'none';
-                this.gameStarted = true;
-                this.isGameComplete = false;
-                this.canMove = true;
-            }, 800);
-            
-            return;
-        }
+        let timeLeft = 20; // 20 seconds for auto-redirect
 
         // Clear any existing timeouts/intervals
         if (this.modalTimeout) {
@@ -1087,25 +1350,79 @@ class MazeGame {
         this.resetPlayerPosition();
         this.canMove = false;
 
+        // Create play again button if it doesn't exist
+        let playAgainBtn = document.getElementById('playAgainButton');
+        if (!playAgainBtn) {
+            playAgainBtn = document.createElement('button');
+            playAgainBtn.id = 'playAgainButton';
+            playAgainBtn.className = 'start-button';
+            playAgainBtn.style.marginTop = '1rem';
+            playAgainBtn.style.marginRight = '1rem';
+            playAgainBtn.textContent = 'Play Again';
+            
+            // Insert before the countdown element
+            countdown.parentNode.insertBefore(playAgainBtn, countdown);
+            
+            // Add click handler
+            playAgainBtn.addEventListener('click', () => {
+                this.restart();
+                this.hideModals();
+                this.showWelcomeModal();
+            });
+        }
+
+        // Create get prize button if it doesn't exist
+        let getPrizeBtn = document.getElementById('getPrizeButton');
+        if (!getPrizeBtn) {
+            getPrizeBtn = document.createElement('button');
+            getPrizeBtn.id = 'getPrizeButton';
+            getPrizeBtn.className = 'start-button';
+            getPrizeBtn.style.marginTop = '1rem';
+            getPrizeBtn.style.backgroundColor = '#689a94';
+            getPrizeBtn.style.borderColor = '#689a94';
+            getPrizeBtn.textContent = 'GET YOUR PRIZE';
+            
+            // Insert before the countdown element
+            countdown.parentNode.insertBefore(getPrizeBtn, countdown);
+            
+            // Add click handler
+            getPrizeBtn.addEventListener('click', () => {
+                window.open('https://www.intelssoft.com', '_blank');
+            });
+        }
+
+        // Update countdown display with enhanced message
+        const updateCountdown = (seconds) => {
+            countdown.innerHTML = `
+                <div style="margin-bottom: 0.5rem;">🎉 <strong>Mission Complete!</strong> 🎉</div>
+                <div style="margin-bottom: 0.5rem;">Score: <strong>${this.score}</strong> | Items Collected: <strong>${this.collectedItems.length}/${this.bonusItems.length}</strong></div>
+                <div style="margin-bottom: 1rem;">You successfully navigated to the Zephyrus Hub!</div>
+                <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">
+                    Auto-redirect to prize page in <strong>${seconds}</strong> seconds
+                </div>
+            `;
+        };
+
         // Initial countdown display
-        countdown.textContent = `The game will restart in\n${timeLeft} seconds`;
+        updateCountdown(timeLeft);
 
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft >= 0) {
-                countdown.textContent = `The game will restart in\n${timeLeft} seconds`;
+                updateCountdown(timeLeft);
             }
         }, 1000);
 
-        // Set timeout to reload the page
+        // Set timeout to auto-redirect to prize page
         this.modalTimeout = setTimeout(() => {
             if (this.countdownInterval) {
                 clearInterval(this.countdownInterval);
                 this.countdownInterval = null;
             }
-            window.location.reload();
-        }, 15000); // Increased to 15 seconds (15000ms)
+            // Auto-redirect to the prize page
+            window.open('https://www.intelssoft.com', '_blank');
+        }, 20000); // 20 seconds
     }
 }
 
