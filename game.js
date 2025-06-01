@@ -929,13 +929,13 @@ class MazeGame {
             flagX, flagY - this.playerSize * 2,
             flagX + flagWidth, flagY
         );
-        flagGradient.addColorStop(0, '#ff6b6b');
-        flagGradient.addColorStop(0.3, '#ff8e8e');
-        flagGradient.addColorStop(0.6, '#ff4757');
-        flagGradient.addColorStop(1, '#ff3742');
+        flagGradient.addColorStop(0, '#8db3ad');
+        flagGradient.addColorStop(0.3, '#76a89f');
+        flagGradient.addColorStop(0.6, '#689a94');
+        flagGradient.addColorStop(1, '#5a8579');
         
         // Add flag glow
-        this.ctx.shadowColor = 'rgba(255, 107, 107, 0.6)';
+        this.ctx.shadowColor = 'rgba(104, 154, 148, 0.6)';
         this.ctx.shadowBlur = 15;
         this.ctx.shadowOffsetX = 2;
         this.ctx.shadowOffsetY = 2;
