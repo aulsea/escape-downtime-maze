@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Escape Downtime</title>
     <link rel="icon" type="image/svg+xml" href="zephyrus-icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,19 +21,19 @@
             min-height: 100vh;
             background-color: #0a0a0a;
             font-family: 'Hero_title', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            touch-action: none;
-            overflow: hidden;
+            touch-action: pan-y;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         #game-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
+            position: relative;
             width: 100%;
-            height: 100%;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
+            padding: 20px 0;
         }
 
         .game-container {
@@ -422,7 +422,8 @@
             66% { transform: translateY(5px) rotate(240deg); }
         }
 
-        /* Mobile responsiveness for success modal */
+        /* Mobile responsiveness for success modal - REMOVED to prevent conflicts */
+        /*
         @media (max-width: 767px) {
             .success-modal {
                 max-width: 95vw;
@@ -471,6 +472,7 @@
                 height: 120px;
             }
         }
+        */
 
         .welcome-text {
             font-size: 1.1em;
@@ -495,6 +497,8 @@
             margin-bottom: 1.2em;
         }
 
+        /* REMOVING DUPLICATE MEDIA QUERIES TO PREVENT CONFLICTS */
+        /*
         @media (min-width: 768px) and (max-width: 1024px) {
             .game-container {
                 padding: 2rem;
@@ -580,6 +584,7 @@
                 min-width: 140px;
             }
         }
+        */
 
         /* Landscape orientation adjustments */
         @media (max-height: 600px) and (orientation: landscape) {
@@ -925,6 +930,418 @@
         .replay-button:active {
             background: linear-gradient(135deg, #3F7EE7, #5A8A84);
             transform: translateY(0);
+        }
+
+        /* iOS-specific optimizations for viewport fitting - FIXED */
+        @supports (-webkit-touch-callout: none) {
+            /* iOS Safari specific styles */
+            body {
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
+                overflow-x: hidden;
+                overflow-y: auto; /* Allow vertical scrolling when needed */
+            }
+            
+            #game-wrapper {
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+                padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+                overflow-y: auto; /* Allow scrolling in wrapper */
+            }
+        }
+
+        /* Mobile responsiveness optimizations */
+        @media (max-width: 767px) {
+            body {
+                padding: 0;
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+            }
+
+            .game-container {
+                padding: 0.8rem;
+                padding-top: 3rem;
+                width: 100%;
+                margin: 0;
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .zephyrus-logo {
+                top: 0.3rem;
+                left: 0.3rem;
+                width: 100px;
+            }
+
+            h1 {
+                font-size: 1.6em;
+                margin: 0.2em 0;
+                margin-top: 0;
+                line-height: 1.1;
+            }
+
+            .game-subtitle {
+                font-size: 11pt;
+                margin-bottom: 0.8rem;
+            }
+
+            #maze-container {
+                padding: 8px;
+                margin: 8px auto;
+                width: 95%;
+                max-width: 90vmin;
+                height: auto;
+                aspect-ratio: 1;
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .modal {
+                padding: 1.5rem;
+                min-width: 280px;
+                max-width: 95vw;
+                max-height: 95vh;
+                overflow-y: auto;
+                margin: 10px;
+            }
+
+            .modal h2 {
+                font-size: 1.4em;
+                margin-bottom: 0.8rem;
+                line-height: 1.2;
+            }
+
+            .start-button {
+                padding: 0.7rem 1.5rem;
+                font-size: 1.1em;
+                min-width: 120px;
+                margin: 1rem auto 0 auto;
+            }
+
+            /* Welcome modal mobile optimizations */
+            .welcome-modal h2 {
+                font-size: 1.6em;
+                margin-bottom: 1.2rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .welcome-logo {
+                width: 40px;
+                height: 29px;
+            }
+
+            .briefing-section, .reward-section {
+                margin: 1.2rem 0;
+                padding: 1.2rem;
+            }
+
+            .section-title {
+                font-size: 1.1em;
+                margin-bottom: 1rem;
+            }
+
+            .briefing-item {
+                font-size: 1em;
+                margin: 1rem auto;
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+
+            .briefing-text {
+                text-align: center;
+            }
+
+            .brief-icon {
+                font-size: 1.5em;
+                margin-bottom: 0.3rem;
+            }
+
+            .reward-text {
+                font-size: 1em;
+                line-height: 1.6;
+            }
+
+            .start-prompt {
+                font-size: 1.1em;
+                margin: 1.2rem 0 0.8rem 0;
+            }
+
+            .timer-prompt {
+                font-size: 10pt;
+                margin-top: 0.8rem;
+            }
+        }
+
+        /* iPhone SE and smaller screens */
+        @media (max-height: 667px) and (max-width: 375px) {
+            .game-container {
+                padding: 0.5rem;
+                padding-top: 2.5rem;
+            }
+
+            h1 {
+                font-size: 1.4em;
+                margin: 0.1em 0;
+            }
+
+            .game-subtitle {
+                font-size: 10pt;
+                margin-bottom: 0.5rem;
+            }
+
+            #maze-container {
+                padding: 5px;
+                margin: 5px auto;
+                width: 95%;
+                max-width: 85vmin;
+            }
+
+            .modal {
+                padding: 1rem;
+                min-width: 260px;
+                max-height: 90vh;
+            }
+
+            .welcome-modal h2 {
+                font-size: 1.3em;
+                margin-bottom: 0.8rem;
+            }
+
+            .briefing-section, .reward-section {
+                margin: 0.8rem 0;
+                padding: 0.8rem;
+            }
+
+            .section-title {
+                font-size: 1em;
+                margin-bottom: 0.8rem;
+            }
+
+            .briefing-item {
+                font-size: 0.9em;
+                margin: 0.8rem auto;
+            }
+
+            .start-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 1em;
+                margin: 0.8rem auto 0 auto;
+            }
+
+            .timer-prompt {
+                font-size: 9pt;
+                margin-top: 0.5rem;
+            }
+        }
+
+        /* iPad optimizations */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            body {
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+            }
+
+            .game-container {
+                padding: 1.5rem;
+                max-width: 95%;
+                min-height: 100vh;
+                min-height: -webkit-fill-available;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .zephyrus-logo {
+                top: 1rem;
+                left: 1rem;
+                width: 100px;
+            }
+
+            h1 {
+                font-size: 2.2em;
+                margin: 0.4em 0;
+            }
+
+            .game-subtitle {
+                font-size: 12pt;
+                margin-bottom: 1rem;
+            }
+
+            #maze-container {
+                padding: 15px;
+                margin: 15px auto;
+                width: 85%;
+                max-width: 70vmin;
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .modal {
+                padding: 2.5rem;
+                min-width: 400px;
+                max-width: 85vw;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .modal h2 {
+                font-size: 1.8em;
+                margin-bottom: 1.5rem;
+            }
+
+            .start-button {
+                padding: 1rem 2rem;
+                font-size: 1.2em;
+                min-width: 180px;
+            }
+
+            /* Welcome modal iPad optimizations */
+            .welcome-modal h2 {
+                font-size: 2em;
+                margin-bottom: 1.5rem;
+            }
+
+            .briefing-section, .reward-section {
+                margin: 1.5rem 0;
+                padding: 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.2em;
+                margin-bottom: 1.2rem;
+            }
+
+            .briefing-item {
+                font-size: 1.1em;
+                margin: 1.2rem auto;
+            }
+
+            .reward-text {
+                font-size: 1.1em;
+            }
+
+            .start-prompt {
+                font-size: 1.2em;
+                margin: 1.5rem 0 1rem 0;
+            }
+        }
+
+        /* Success modal mobile optimizations */
+        @media (max-width: 767px) {
+            .success-modal {
+                max-width: 95vw;
+                margin: 5px;
+                max-height: 95vh;
+                overflow-y: auto;
+            }
+            
+            .success-header {
+                padding: 1.2rem;
+            }
+            
+            .success-header h2 {
+                font-size: 1.6em;
+                line-height: 1.1;
+            }
+            
+            .success-subtitle {
+                font-size: 11pt;
+                margin-top: 0.3rem;
+            }
+            
+            .success-content {
+                padding: 1.2rem;
+            }
+
+            .celebration-text {
+                font-size: 1.1em;
+                margin-bottom: 0.8rem;
+            }
+
+            .promo-label {
+                font-size: 1em;
+                margin-bottom: 1rem;
+            }
+            
+            .promo-code-box {
+                font-size: 1.2em;
+                padding: 0.8rem 1.5rem;
+                margin-bottom: 1.2rem;
+            }
+            
+            .qr-section {
+                margin-bottom: 2rem;
+            }
+
+            .qr-hint {
+                font-size: 10pt;
+                margin-bottom: 0.8rem;
+            }
+            
+            .qr-code img {
+                width: 120px;
+                height: 120px;
+            }
+
+            .qr-caption {
+                font-size: 10pt;
+                margin-bottom: 2rem;
+            }
+
+            .replay-button {
+                padding: 0.8rem 1.5rem;
+                font-size: 1em;
+                min-width: 160px;
+                margin-bottom: 1rem;
+            }
+
+            .success-footer {
+                padding: 1rem;
+            }
+
+            .countdown {
+                font-size: 10pt;
+            }
+        }
+
+        /* Failure modal mobile optimizations */
+        @media (max-width: 767px) {
+            .failure-modal {
+                max-width: 95vw;
+                margin: 5px;
+            }
+
+            .failure-content {
+                padding: 1.5rem;
+            }
+
+            .failure-heading {
+                font-size: 1.6em;
+                margin-bottom: 0.8rem;
+                line-height: 1.2;
+            }
+
+            .failure-subtitle {
+                font-size: 11pt;
+                margin-bottom: 1.5rem;
+            }
+
+            .failure-button {
+                padding: 0.8rem 1.8rem;
+                font-size: 1.1em;
+            }
         }
     </style>
 </head>

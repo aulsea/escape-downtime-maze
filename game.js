@@ -2,16 +2,24 @@ class MazeGame {
     constructor() {
         this.canvas = document.getElementById('mazeCanvas');
         this.ctx = this.canvas.getContext('2d');
+        
+        // Mobile detection and performance optimization
+        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
         this.mazeSize = 16;
         this.cellSize = 46;
         this.wallThickness = 2;
         this.playerSize = 10;
-        this.moveSpeed = 0.15;
+        this.moveSpeed = 0.35;
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
-        this.maxTrailLength = 35;
-        this.trailDuration = 1000;
-        this.trailSegmentSpacing = 6;
+        
+        // Performance optimizations for mobile
+        this.maxTrailLength = this.isMobile ? 15 : 35; // Reduced trail for mobile
+        this.trailDuration = this.isMobile ? 600 : 1000; // Faster trail decay on mobile
+        this.trailSegmentSpacing = this.isMobile ? 10 : 6; // Fewer trail segments
+        
         this.trailColors = {
             primary: { r: 255, g: 255, b: 255 },
             secondary: { r: 255, g: 255, b: 255 }
@@ -27,9 +35,14 @@ class MazeGame {
         this.canvasOffset = { x: 0, y: 0 };
         this.buttonScale = 1;
         
+        // Animation frame management
+        this.animationFrame = null;
+        this.lastAnimationTime = 0;
+        this.animationThrottle = this.isMobile ? 33 : 16; // 30fps on mobile, 60fps on desktop
+        
         // New maze elements
-        this.bonusItems = []; // 💾 Backup, ⚡️ Failover, ☁️ Cloud switch
-        this.obstacles = [];  // 🟥 Downtime Trap, ⛔️ Data Loss Wall, 💣 System Crash
+        this.bonusItems = []; 
+        this.obstacles = [];  
         this.collectedItems = [];
         this.score = 0;
         this.retryCount = 0;
@@ -42,11 +55,13 @@ class MazeGame {
         this.dangerPath = [];
         this.pathChosen = null;
         
-        // Collection effects
+        // Collection effects - reduced for mobile performance
         this.collectionEffects = [];
+        this.maxCollectionEffects = this.isMobile ? 3 : 8;
         
-        // Explosion effects
+        // Explosion effects - reduced for mobile performance
         this.explosionEffects = [];
+        this.maxExplosionEffects = this.isMobile ? 5 : 15;
         this.gameOverDelay = null;
         
         // Set canvas size based on device
@@ -94,24 +109,29 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         
-        const isTablet = ('ontouchstart' in window) && window.innerWidth >= 768;
-        const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        // Improved tablet detection
+        const isTablet = window.innerWidth >= 768 && window.innerWidth <= 1024;
+        const isPhone = window.innerWidth < 768;
+        const isDesktop = window.innerWidth > 1024;
         
         let containerSize;
         if (isTablet) {
-            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.8);
-            this.cellSize = 52; // Adjusted for tablet
-            this.wallThickness = 10;
-            this.playerSize = 12;
-        } else if (isTouch) {
-            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.95);
-            this.cellSize = 42; // Adjusted for phone
-            this.wallThickness = 8;
-            this.playerSize = 10;
+            // iPad specific sizing - much larger
+            containerSize = Math.min(window.innerHeight * 0.6, window.innerWidth * 0.85, 600);
+            this.cellSize = 35; // Larger cells for iPad
+            this.wallThickness = 4;
+            this.playerSize = 8;
+        } else if (isPhone) {
+            // Phone sizing
+            containerSize = Math.min(window.innerHeight * 0.6, window.innerWidth * 0.95, 400);
+            this.cellSize = 22; // Smaller for phones
+            this.wallThickness = 3;
+            this.playerSize = 6;
         } else {
-            containerSize = Math.min(window.innerHeight * 0.75, window.innerWidth * 0.6);
-            this.cellSize = 32; // Adjusted for desktop
-            this.wallThickness = 6;
+            // Desktop sizing
+            containerSize = Math.min(window.innerHeight * 0.7, window.innerWidth * 0.6, 700);
+            this.cellSize = 40; // Good size for desktop
+            this.wallThickness = 3;
             this.playerSize = 8;
         }
 
@@ -143,7 +163,7 @@ class MazeGame {
         };
         
         // Scale UI elements based on device type
-        this.buttonScale = isTablet ? 2 : (isTouch ? 1.5 : 1);
+        this.buttonScale = isTablet ? 1.3 : (isPhone ? 1 : 1.2);
         
         if (this.playerPos) {
             this.resetPlayerPosition();
@@ -513,13 +533,13 @@ class MazeGame {
         // Calculate distance to target
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 0.1) {
+        if (distance > 0.05) {
             // Limit maximum movement per frame to prevent jumping through walls
-            const maxMovePerFrame = this.cellSize * 0.25;
+            const maxMovePerFrame = this.cellSize * 0.4; // Increased from 0.25 to allow faster movement
             
-            // Calculate movement this frame
-            let moveX = dx * this.moveSpeed;
-            let moveY = dy * this.moveSpeed;
+            // Calculate movement this frame - more responsive
+            let moveX = dx * this.moveSpeed * 1.5; // Multiply by 1.5 for extra responsiveness
+            let moveY = dy * this.moveSpeed * 1.5;
             
             // Cap the movement if it's too large
             const moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
@@ -657,82 +677,51 @@ class MazeGame {
     }
 
     createCollectionEffect(x, y, type) {
-        // Create simpler, more lightweight particle effect
-        const color = this.getBonusColor(type);
-        const particles = [];
-        
-        // Create fewer particles for better performance
-        const particleCount = 6; // Reduced from 12
-        for (let i = 0; i < particleCount; i++) {
-            const angle = (i / particleCount) * Math.PI * 2;
-            const speed = Math.random() * 4 + 2;
-            particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                size: Math.random() * 3 + 2,
-                life: 1.0,
-                decay: 0.025 // Faster decay for quicker cleanup
-            });
+        // Limit number of active effects for mobile performance
+        if (this.collectionEffects.length >= this.maxCollectionEffects) {
+            this.collectionEffects.shift(); // Remove oldest effect
         }
         
+        const color = this.getBonusColor(type);
         this.collectionEffects.push({
-            particles: particles,
-            color: color,
+            x: x,
+            y: y,
             type: type,
-            startTime: performance.now()
+            startTime: performance.now(),
+            color: color,
+            particles: this.isMobile ? 8 : 12 // Fewer particles on mobile
         });
-        
-        console.log(`Collected ${type} bonus!`);
     }
 
     createExplosionEffect(x, y) {
-        // Create dramatic explosion effect
-        const particles = [];
-        
-        // Create multiple particle rings for dramatic effect
-        const particleCount = 20;
-        for (let i = 0; i < particleCount; i++) {
-            const angle = (i / particleCount) * Math.PI * 2;
-            const speed = Math.random() * 12 + 8; // Fast explosion particles
-            const size = Math.random() * 6 + 4; // Larger particles
-            
-            particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                size: size,
-                life: 1.0,
-                decay: 0.02, // Slower decay for longer effect
-                color: this.getExplosionColor(i, particleCount)
-            });
+        // Limit number of active effects for mobile performance  
+        if (this.explosionEffects.length >= this.maxExplosionEffects) {
+            this.explosionEffects.shift(); // Remove oldest effect
         }
         
-        // Add some slower, larger debris particles
-        for (let i = 0; i < 8; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 6 + 2;
-            
-            particles.push({
+        const explosionParticles = [];
+        const particleCount = this.isMobile ? 6 : 12; // Fewer particles on mobile
+        
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const speed = this.isMobile ? 30 : 50; // Slower particles on mobile
+            explosionParticles.push({
                 x: x,
                 y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                size: Math.random() * 8 + 6,
+                vx: Math.cos(angle) * speed * (0.5 + Math.random() * 0.5),
+                vy: Math.sin(angle) * speed * (0.5 + Math.random() * 0.5),
                 life: 1.0,
-                decay: 0.015, // Even slower decay
-                color: '#FF5722' // Orange debris
+                size: this.isMobile ? 3 : 4 // Smaller particles on mobile
             });
         }
         
         this.explosionEffects.push({
-            particles: particles,
-            startTime: performance.now()
+            x: x,
+            y: y,
+            startTime: performance.now(),
+            particles: explosionParticles,
+            duration: this.isMobile ? 800 : 1200 // Shorter duration on mobile
         });
-        
-        console.log('Explosion created!');
     }
 
     getExplosionColor(index, total) {
@@ -752,32 +741,39 @@ class MazeGame {
         // Draw all active collection effects
         for (let i = this.collectionEffects.length - 1; i >= 0; i--) {
             const effect = this.collectionEffects[i];
-            let allParticlesDead = true;
+            const effectAge = currentTime - effect.startTime;
+            const effectDuration = this.isMobile ? 600 : 1000;
             
-            for (const particle of effect.particles) {
-                if (particle.life > 0) {
-                    allParticlesDead = false;
-                    
-                    // Update particle
-                    particle.x += particle.vx;
-                    particle.y += particle.vy;
-                    particle.vx *= 0.98; // Friction
-                    particle.vy *= 0.98;
-                    particle.life -= particle.decay;
-                    
-                    // Draw particle with isolated state
+            if (effectAge >= effectDuration) {
+                this.collectionEffects.splice(i, 1);
+                continue;
+            }
+            
+            // Calculate effect parameters
+            const progress = effectAge / effectDuration;
+            const alpha = 1 - progress;
+            const scale = 1 + progress * 0.5;
+            
+            // Draw simplified particle burst
+            for (let j = 0; j < effect.particles; j++) {
+                const angle = (j / effect.particles) * Math.PI * 2;
+                const distance = progress * 30; // Particles move outward
+                const particleX = effect.x + Math.cos(angle) * distance;
+                const particleY = effect.y + Math.sin(angle) * distance;
+                const size = (this.isMobile ? 2 : 3) * (1 - progress);
+                
+                if (size > 0.5) {
                     this.ctx.save();
-                    this.ctx.globalCompositeOperation = 'source-over';
-                    this.ctx.shadowColor = effect.color;
-                    this.ctx.shadowBlur = 8 * particle.life;
-                    this.ctx.globalAlpha = Math.max(0, particle.life);
+                    this.ctx.globalAlpha = alpha;
                     this.ctx.fillStyle = effect.color;
+                    this.ctx.shadowColor = effect.color;
+                    this.ctx.shadowBlur = this.isMobile ? 5 : 8;
                     
                     this.ctx.beginPath();
                     this.ctx.arc(
-                        this.canvasOffset.x + particle.x,
-                        this.canvasOffset.y + particle.y,
-                        Math.max(1, particle.size * particle.life),
+                        this.canvasOffset.x + particleX,
+                        this.canvasOffset.y + particleY,
+                        size,
                         0,
                         Math.PI * 2
                     );
@@ -785,23 +781,10 @@ class MazeGame {
                     this.ctx.restore();
                 }
             }
-            
-            // Remove dead effects
-            if (allParticlesDead || currentTime - effect.startTime > 2000) {
-                this.collectionEffects.splice(i, 1);
-            }
         }
         
         // Restore the entire canvas state
         this.ctx.restore();
-        
-        // Force reset all canvas properties to ensure clean state
-        this.ctx.globalAlpha = 1.0;
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetX = 0;
-        this.ctx.shadowOffsetY = 0;
-        this.ctx.globalCompositeOperation = 'source-over';
     }
 
     drawExplosionEffects() {
@@ -815,32 +798,40 @@ class MazeGame {
         // Draw all active explosion effects
         for (let i = this.explosionEffects.length - 1; i >= 0; i--) {
             const effect = this.explosionEffects[i];
-            let allParticlesDead = true;
+            const effectAge = currentTime - effect.startTime;
             
+            if (effectAge >= effect.duration) {
+                this.explosionEffects.splice(i, 1);
+                continue;
+            }
+            
+            // Calculate effect parameters
+            const progress = effectAge / effect.duration;
+            const alpha = 1 - progress;
+            
+            // Draw explosive particle burst
             for (const particle of effect.particles) {
-                if (particle.life > 0) {
-                    allParticlesDead = false;
-                    
-                    // Update particle with gravity effect
-                    particle.x += particle.vx;
-                    particle.y += particle.vy;
-                    particle.vx *= 0.95; // Air resistance
-                    particle.vy += 0.2; // Gravity
-                    particle.life -= particle.decay;
-                    
-                    // Draw particle with intense glow
+                const particleProgress = effectAge / effect.duration;
+                if (particleProgress >= particle.life) continue;
+                
+                // Update particle position
+                const currentX = particle.x + particle.vx * particleProgress;
+                const currentY = particle.y + particle.vy * particleProgress + (particleProgress * particleProgress * 20); // Gravity
+                const size = particle.size * (1 - particleProgress);
+                const particleAlpha = alpha * (1 - particleProgress);
+                
+                if (size > 0.5 && particleAlpha > 0.1) {
                     this.ctx.save();
-                    this.ctx.globalCompositeOperation = 'screen'; // Additive blending for fire effect
-                    this.ctx.shadowColor = particle.color;
-                    this.ctx.shadowBlur = 20 * particle.life;
-                    this.ctx.globalAlpha = Math.max(0, particle.life);
-                    this.ctx.fillStyle = particle.color;
+                    this.ctx.globalAlpha = particleAlpha;
+                    this.ctx.fillStyle = this.getExplosionColor(Math.floor(particleProgress * 3), 3);
+                    this.ctx.shadowColor = '#FF4C4C';
+                    this.ctx.shadowBlur = this.isMobile ? 8 : 15;
                     
                     this.ctx.beginPath();
                     this.ctx.arc(
-                        this.canvasOffset.x + particle.x,
-                        this.canvasOffset.y + particle.y,
-                        Math.max(1, particle.size * particle.life),
+                        this.canvasOffset.x + currentX,
+                        this.canvasOffset.y + currentY,
+                        size,
                         0,
                         Math.PI * 2
                     );
@@ -848,23 +839,10 @@ class MazeGame {
                     this.ctx.restore();
                 }
             }
-            
-            // Remove dead effects after 3 seconds
-            if (allParticlesDead || currentTime - effect.startTime > 3000) {
-                this.explosionEffects.splice(i, 1);
-            }
         }
         
         // Restore the entire canvas state
         this.ctx.restore();
-        
-        // Force reset all canvas properties to ensure clean state
-        this.ctx.globalAlpha = 1.0;
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetX = 0;
-        this.ctx.shadowOffsetY = 0;
-        this.ctx.globalCompositeOperation = 'source-over';
     }
 
     pushPlayerOutOfWall() {
@@ -1023,7 +1001,7 @@ class MazeGame {
     }
 
     restart() {
-        // Clear any existing timeouts/intervals
+        // Clear any existing timeouts and intervals
         if (this.modalTimeout) {
             clearTimeout(this.modalTimeout);
             this.modalTimeout = null;
@@ -1036,31 +1014,49 @@ class MazeGame {
             clearTimeout(this.gameOverDelay);
             this.gameOverDelay = null;
         }
-
-        // Hide all modals
-        this.hideModals();
-
-        // Reset game state
-        this.currentLevel = 1;
-        this.score = 0;
-        this.retryCount = 0;
-        this.collectedItems = [];
-        this.collectionEffects = [];
-        this.explosionEffects = [];
-        this.moveSpeed = 0.15; // Reset speed in case it was slowed
         
-        // Regenerate maze and elements
-        this.generateMaze();
-        this.generateTwoPaths();
-        this.generateRandomEndPosition(); // Generate new random flag position
-        this.generateMazeElements();
-
-        // Reset game flags
+        // Cancel animation frame
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+        
+        // Clear all effects arrays for memory optimization
+        this.collectionEffects.length = 0;
+        this.explosionEffects.length = 0;
+        this.trail.length = 0;
+        
+        // Reset game state
+        this.isGameComplete = false;
+        this.isGameOver = false;
+        this.showGameOverScreen = false;
+        this.showSuccessScreen = false;
         this.canMove = false;
         this.gameStarted = false;
-        this.isGameOver = false;
-        this.isGameComplete = false;
+        this.retryCount = 0;
+        this.score = 0;
+        this.collectedItems = [];
+        
+        // Clear maze arrays
+        this.bonusItems.length = 0;
+        this.obstacles.length = 0;
+        this.safePath.length = 0;
+        this.dangerPath.length = 0;
+        this.pathChosen = null;
+        
+        // Generate new maze
+        this.generateMaze();
+        this.generateTwoPaths();
+        this.generateRandomEndPosition();
+        this.generateMazeElements();
+        
+        // Reset player position
         this.resetPlayerPosition();
+        
+        // Restart animation with fresh timestamp
+        this.lastTime = performance.now();
+        this.lastAnimationTime = 0;
+        this.animate(this.lastTime);
     }
 
     hideModals() {
@@ -1704,6 +1700,14 @@ class MazeGame {
     }
 
     animate(currentTime) {
+        // Throttle animation frame rate for mobile performance
+        if (currentTime - this.lastAnimationTime < this.animationThrottle) {
+            requestAnimationFrame((time) => this.animate(time));
+            return;
+        }
+        
+        this.lastAnimationTime = currentTime;
+        
         // Calculate delta time
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
@@ -1714,7 +1718,9 @@ class MazeGame {
         }
 
         this.drawMaze();
-        requestAnimationFrame((time) => this.animate(time));
+        
+        // Store animation frame reference for cleanup
+        this.animationFrame = requestAnimationFrame((time) => this.animate(time));
     }
 
     showSuccessModal() {
