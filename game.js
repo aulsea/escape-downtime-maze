@@ -37,6 +37,11 @@ class MazeGame {
         // Animation timing
         this.animationTime = 0;
         
+        // Two paths to finish
+        this.safePath = [];
+        this.dangerPath = [];
+        this.pathChosen = null;
+        
         // Set canvas size based on device
         this.setupCanvasSize();
         
@@ -46,8 +51,8 @@ class MazeGame {
         this.trail = [{ ...this.startPosition }];
         this.targetPos = { ...this.startPosition };
         this.endPos = { 
-            x: (this.mazeSize / 2) * this.cellSize, // Center position for Zephyrus Hub
-            y: (this.mazeSize / 2) * this.cellSize
+            x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2, // Back to corner
+            y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
         };
         this.isGameComplete = false;
         this.isGameOver = false;
@@ -58,6 +63,7 @@ class MazeGame {
         
         // Generate the maze with new elements
         this.generateMaze();
+        this.generateTwoPaths();
         this.generateMazeElements();
         
         // Set up touch controls
@@ -227,25 +233,62 @@ class MazeGame {
         }
     }
 
+    generateTwoPaths() {
+        // Create two distinct paths to the end - one safe, one dangerous
+        const endX = this.mazeSize - 2;
+        const endY = this.mazeSize - 2;
+        
+        // Create safe path (upper route)
+        for (let x = Math.floor(this.mazeSize/2); x < endX; x++) {
+            this.maze[Math.floor(this.mazeSize/3)][x] = 0;
+        }
+        for (let y = Math.floor(this.mazeSize/3); y < endY; y++) {
+            this.maze[y][endX - 1] = 0;
+        }
+        
+        // Create dangerous path (lower route)
+        for (let x = Math.floor(this.mazeSize/2); x < endX; x++) {
+            this.maze[Math.floor(this.mazeSize * 2/3)][x] = 0;
+        }
+        for (let y = Math.floor(this.mazeSize * 2/3); y < endY; y++) {
+            this.maze[y][endX - 1] = 0;
+        }
+        
+        // Mark path areas for obstacle placement
+        this.safePath = [];
+        this.dangerPath = [];
+        
+        // Safe path coordinates
+        for (let x = Math.floor(this.mazeSize/2); x < endX; x++) {
+            this.safePath.push({x, y: Math.floor(this.mazeSize/3)});
+        }
+        
+        // Danger path coordinates  
+        for (let x = Math.floor(this.mazeSize/2); x < endX; x++) {
+            this.dangerPath.push({x, y: Math.floor(this.mazeSize * 2/3)});
+        }
+    }
+
     generateMazeElements() {
         // Clear existing elements
         this.bonusItems = [];
         this.obstacles = [];
         this.collectedItems = [];
         
-        // Generate bonus items in random open spaces
+        // Generate bonus items in random open spaces (not on paths)
         const bonusTypes = ['backup', 'failover', 'cloud'];
-        const bonusCount = Math.floor(this.mazeSize * 0.15); // ~2-3 items
+        const bonusCount = Math.floor(this.mazeSize * 0.15);
         
         let bonusPlaced = 0;
         while (bonusPlaced < bonusCount) {
             const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             
-            // Check if position is open and not near start/end
+            // Check if position is open and not on special paths
             if (this.maze[y][x] === 0 && 
                 this.getDistance(x, y, 1, 1) > 2 && // Not near start
-                this.getDistance(x, y, this.mazeSize/2, this.mazeSize/2) > 2) { // Not near center
+                this.getDistance(x, y, this.mazeSize-2, this.mazeSize-2) > 2 && // Not near end
+                !this.isOnPath(x, y)) { // Not on special paths
                 
                 const type = bonusTypes[bonusPlaced % bonusTypes.length];
                 this.bonusItems.push({
@@ -259,31 +302,42 @@ class MazeGame {
             }
         }
         
-        // Generate obstacles in strategic positions
+        // Place obstacles ONLY on the danger path
         const obstacleTypes = ['downtime', 'dataloss', 'crash'];
-        const obstacleCount = Math.floor(this.mazeSize * 0.1); // ~1-2 obstacles
+        let obstacleIndex = 0;
         
-        let obstaclesPlaced = 0;
-        while (obstaclesPlaced < obstacleCount) {
-            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
-            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+        for (let i = 1; i < this.dangerPath.length - 1; i += 2) { // Every other position
+            const pathPoint = this.dangerPath[i];
+            const type = obstacleTypes[obstacleIndex % obstacleTypes.length];
             
-            // Check if position is open and strategic
-            if (this.maze[y][x] === 0 && 
-                this.getDistance(x, y, 1, 1) > 3 && // Not too close to start
-                this.getDistance(x, y, this.mazeSize/2, this.mazeSize/2) > 2) { // Not near center
-                
-                const type = obstacleTypes[obstaclesPlaced % obstacleTypes.length];
-                this.obstacles.push({
-                    x: x * this.cellSize + this.cellSize / 2,
-                    y: y * this.cellSize + this.cellSize / 2,
-                    type: type,
-                    active: true,
-                    animationOffset: Math.random() * Math.PI * 2
-                });
-                obstaclesPlaced++;
-            }
+            this.obstacles.push({
+                x: pathPoint.x * this.cellSize + this.cellSize / 2,
+                y: pathPoint.y * this.cellSize + this.cellSize / 2,
+                type: type,
+                active: true,
+                animationOffset: Math.random() * Math.PI * 2
+            });
+            obstacleIndex++;
         }
+        
+        // Add bonus items on the safe path
+        for (let i = 1; i < this.safePath.length - 1; i += 3) { // Every third position
+            const pathPoint = this.safePath[i];
+            const type = bonusTypes[i % bonusTypes.length];
+            
+            this.bonusItems.push({
+                x: pathPoint.x * this.cellSize + this.cellSize / 2,
+                y: pathPoint.y * this.cellSize + this.cellSize / 2,
+                type: type,
+                collected: false,
+                animationOffset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    isOnPath(x, y) {
+        return this.safePath.some(p => p.x === x && p.y === y) ||
+               this.dangerPath.some(p => p.x === x && p.y === y);
     }
 
     getDistance(x1, y1, x2, y2) {
@@ -739,6 +793,7 @@ class MazeGame {
         
         // Regenerate maze and elements
         this.generateMaze();
+        this.generateTwoPaths();
         this.generateMazeElements();
 
         // Reset game flags
@@ -940,12 +995,12 @@ class MazeGame {
             const smoothOpacity = Math.pow(Math.sin((opacity * Math.PI) / 2), 1.5);
             
             // Calculate size based on age and position
-            const sizeMultiplier = 1 - (index / segments.length) * 0.6; // Reduced size decrease
+            const sizeMultiplier = 1 - (index / segments.length) * 0.6;
             const pulseEffect = 0.8 + Math.sin(currentTime * 0.005 + index * 0.2) * 0.2;
-            const size = this.playerSize * 0.8 * sizeMultiplier * pulseEffect; // Increased base size multiplier
+            const size = this.playerSize * 0.8 * sizeMultiplier * pulseEffect;
             
             // Draw dot with enhanced glow
-            this.ctx.shadowColor = `rgba(255, 255, 255, ${smoothOpacity * 0.7})`; // Increased glow opacity
+            this.ctx.shadowColor = `rgba(255, 255, 255, ${smoothOpacity * 0.7})`;
             this.ctx.shadowBlur = 15;
             
             // Draw larger outer glow
@@ -953,7 +1008,7 @@ class MazeGame {
             this.ctx.arc(
                 this.canvasOffset.x + segment.x,
                 this.canvasOffset.y + segment.y,
-                size * 1.5, // Larger outer glow
+                size * 1.5,
                 0,
                 Math.PI * 2
             );
@@ -992,8 +1047,8 @@ class MazeGame {
                 size
             );
             
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.9})`); // Increased core opacity
-            gradient.addColorStop(1, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`); // Increased edge opacity
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${smoothOpacity * 0.9})`);
+            gradient.addColorStop(1, `rgba(255, 255, 255, ${smoothOpacity * 0.3})`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.fill();
@@ -1005,46 +1060,54 @@ class MazeGame {
     }
 
     drawMaze() {
-        // Clear canvas with retro dark background
+        // Clear canvas with dark background
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw maze walls with retro glow effect
-        this.ctx.save();
-        this.ctx.translate(this.canvasOffset.x, this.canvasOffset.y);
+        // Draw paths with subtle background
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        for (let y = 0; y < this.mazeSize; y++) {
+            for (let x = 0; x < this.mazeSize; x++) {
+                if (this.maze[y][x] === 0) {
+                    this.ctx.fillRect(
+                        this.canvasOffset.x + x * this.cellSize,
+                        this.canvasOffset.y + y * this.cellSize,
+                        this.cellSize,
+                        this.cellSize
+                    );
+                }
+            }
+        }
 
-        // Draw walls with enhanced retro styling
-        this.ctx.strokeStyle = '#ffffff';
+        // Highlight the two paths with different colors
+        this.drawPathHighlights();
+
+        // Draw walls
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
         this.ctx.lineWidth = this.wallThickness;
-        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.shadowBlur = 8;
-
+        this.ctx.lineCap = 'square';
+        this.ctx.lineJoin = 'miter';
         this.ctx.beginPath();
+
         for (let y = 0; y < this.mazeSize; y++) {
             for (let x = 0; x < this.mazeSize; x++) {
                 if (this.maze[y][x] === 1) {
-                    const cellX = x * this.cellSize;
-                    const cellY = y * this.cellSize;
+                    const cellX = this.canvasOffset.x + x * this.cellSize;
+                    const cellY = this.canvasOffset.y + y * this.cellSize;
                     
-                    // Enhanced wall drawing with more detail
-                    const hasTop = y === 0 || this.maze[y-1][x] === 0;
-                    const hasBottom = y === this.mazeSize-1 || this.maze[y+1][x] === 0;
-                    const hasLeft = x === 0 || this.maze[y][x-1] === 0;
-                    const hasRight = x === this.mazeSize-1 || this.maze[y][x+1] === 0;
-                    
-                    if (hasTop) {
+                    if (y === 0 || this.maze[y-1][x] === 0) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX + this.cellSize, cellY);
                     }
-                    if (hasBottom) {
+                    if (y === this.mazeSize-1 || this.maze[y+1][x] === 0) {
                         this.ctx.moveTo(cellX, cellY + this.cellSize);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
-                    if (hasLeft) {
+                    if (x === 0 || this.maze[y][x-1] === 0) {
                         this.ctx.moveTo(cellX, cellY);
                         this.ctx.lineTo(cellX, cellY + this.cellSize);
                     }
-                    if (hasRight) {
+                    if (x === this.mazeSize-1 || this.maze[y][x+1] === 0) {
                         this.ctx.moveTo(cellX + this.cellSize, cellY);
                         this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
                     }
@@ -1052,27 +1115,190 @@ class MazeGame {
             }
         }
         this.ctx.stroke();
-        this.ctx.shadowBlur = 0;
 
         // Draw bonus items with retro styling
         this.drawBonusItems();
         
         // Draw obstacles with warning effects
         this.drawObstacles();
-        
-        // Draw Zephyrus Hub at center
-        this.drawZephyrusHub();
 
         // Draw trail
         this.drawTrail();
 
-        // Draw player with enhanced retro glow
-        this.drawPlayer();
+        // Draw finish point with Zephyrus-styled flag
+        this.drawZephyrusFlag();
 
-        this.ctx.restore();
+        // Draw player with enhanced glow
+        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(
+            this.canvasOffset.x + this.playerPos.x,
+            this.canvasOffset.y + this.playerPos.y,
+            this.playerSize,
+            0,
+            Math.PI * 2
+        );
+        this.ctx.fill();
+        
+        // Reset shadow
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
         
         // Draw UI elements
         this.drawUI();
+    }
+
+    drawPathHighlights() {
+        // Draw safe path highlight (subtle green)
+        this.ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+        for (const point of this.safePath) {
+            this.ctx.fillRect(
+                this.canvasOffset.x + point.x * this.cellSize,
+                this.canvasOffset.y + point.y * this.cellSize,
+                this.cellSize,
+                this.cellSize
+            );
+        }
+
+        // Draw danger path highlight (subtle red)
+        this.ctx.fillStyle = 'rgba(244, 67, 54, 0.1)';
+        for (const point of this.dangerPath) {
+            this.ctx.fillRect(
+                this.canvasOffset.x + point.x * this.cellSize,
+                this.canvasOffset.y + point.y * this.cellSize,
+                this.cellSize,
+                this.cellSize
+            );
+        }
+    }
+
+    drawZephyrusFlag() {
+        const flagX = this.canvasOffset.x + this.endPos.x;
+        const flagY = this.canvasOffset.y + this.endPos.y;
+        
+        // Draw stylish flag pole with Zephyrus gradient
+        const poleGradient = this.ctx.createLinearGradient(
+            flagX - 2, flagY - this.playerSize * 2,
+            flagX + 2, flagY + this.playerSize * 2
+        );
+        poleGradient.addColorStop(0, '#ffffff');
+        poleGradient.addColorStop(0.3, '#8db3ad');
+        poleGradient.addColorStop(0.7, '#689a94');
+        poleGradient.addColorStop(1, '#5a8579');
+        
+        this.ctx.fillStyle = poleGradient;
+        this.ctx.fillRect(flagX - 2, flagY - this.playerSize * 2, 4, this.playerSize * 4);
+        
+        // Add pole highlight
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.fillRect(flagX - 1, flagY - this.playerSize * 2, 1, this.playerSize * 4);
+
+        // Draw stylish flag with Zephyrus colors and animation
+        const flagWidth = this.playerSize * 3.5;
+        const flagHeight = this.playerSize * 2;
+        const time = performance.now() * 0.003;
+        
+        // Create flag shape with wave effect
+        this.ctx.beginPath();
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        
+        // Top edge with wave
+        for (let i = 0; i <= flagWidth; i += 4) {
+            const waveOffset = Math.sin(time + i * 0.1) * 2;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
+        }
+        
+        // Right edge
+        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
+        
+        // Bottom edge with wave
+        for (let i = flagWidth; i >= 0; i -= 4) {
+            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
+            this.ctx.lineTo(flagX + i, flagY + waveOffset);
+        }
+        
+        this.ctx.closePath();
+        
+        // Create Zephyrus flag gradient
+        const flagGradient = this.ctx.createLinearGradient(
+            flagX, flagY - this.playerSize * 2,
+            flagX + flagWidth, flagY
+        );
+        flagGradient.addColorStop(0, '#8db3ad');
+        flagGradient.addColorStop(0.3, '#76a89f');
+        flagGradient.addColorStop(0.6, '#689a94');
+        flagGradient.addColorStop(1, '#5a8579');
+        
+        // Add flag glow
+        this.ctx.shadowColor = 'rgba(104, 154, 148, 0.6)';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetX = 2;
+        this.ctx.shadowOffsetY = 2;
+        
+        // Fill flag
+        this.ctx.fillStyle = flagGradient;
+        this.ctx.fill();
+        
+        // Reset shadow for flag details
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        
+        // Add Zephyrus logo on flag
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = `bold ${this.playerSize}px Hero_title`;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Z', flagX + flagWidth/2, flagY - this.playerSize/2);
+        
+        // Add flag details (stripes)
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        
+        // Horizontal stripes
+        for (let i = 1; i < 3; i++) {
+            const stripeY = flagY - this.playerSize * 2 + (flagHeight / 3) * i;
+            this.ctx.moveTo(flagX, stripeY);
+            for (let j = 0; j <= flagWidth; j += 4) {
+                const waveOffset = Math.sin(time + j * 0.1) * 1.5;
+                this.ctx.lineTo(flagX + j, stripeY + waveOffset);
+            }
+        }
+        this.ctx.stroke();
+        
+        // Add flag border
+        this.ctx.beginPath();
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        
+        // Recreate the flag shape for border
+        for (let i = 0; i <= flagWidth; i += 4) {
+            const waveOffset = Math.sin(time + i * 0.1) * 2;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset);
+        }
+        this.ctx.lineTo(flagX + flagWidth, flagY - this.playerSize);
+        for (let i = flagWidth; i >= 0; i -= 4) {
+            const waveOffset = Math.sin(time + i * 0.1 + Math.PI) * 2;
+            this.ctx.lineTo(flagX + i, flagY + waveOffset);
+        }
+        this.ctx.closePath();
+        
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+        
+        // Add flag highlight
+        this.ctx.beginPath();
+        this.ctx.moveTo(flagX, flagY - this.playerSize * 2);
+        for (let i = 0; i <= flagWidth * 0.3; i += 2) {
+            const waveOffset = Math.sin(time + i * 0.1) * 1;
+            this.ctx.lineTo(flagX + i, flagY - this.playerSize * 2 + waveOffset + i * 0.1);
+        }
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
     }
 
     drawBonusItems() {
@@ -1084,7 +1310,7 @@ class MazeGame {
                 const glow = Math.sin(time * 2 + item.animationOffset) * 0.3 + 0.7;
                 
                 this.ctx.save();
-                this.ctx.translate(item.x, item.y + bounce);
+                this.ctx.translate(this.canvasOffset.x + item.x, this.canvasOffset.y + item.y + bounce);
                 
                 // Draw glow effect
                 this.ctx.shadowColor = this.getBonusColor(item.type);
@@ -1155,7 +1381,7 @@ class MazeGame {
                 const rotation = time * 0.5 + obstacle.animationOffset;
                 
                 this.ctx.save();
-                this.ctx.translate(obstacle.x, obstacle.y);
+                this.ctx.translate(this.canvasOffset.x + obstacle.x, this.canvasOffset.y + obstacle.y);
                 this.ctx.rotate(rotation);
                 this.ctx.scale(pulse, pulse);
                 
@@ -1222,74 +1448,6 @@ class MazeGame {
         }
     }
 
-    drawZephyrusHub() {
-        const time = performance.now() * 0.003;
-        const hubX = this.endPos.x;
-        const hubY = this.endPos.y;
-        
-        // Make sure center area is clear
-        const centerX = Math.floor(this.mazeSize / 2);
-        const centerY = Math.floor(this.mazeSize / 2);
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                if (centerX + dx >= 0 && centerX + dx < this.mazeSize &&
-                    centerY + dy >= 0 && centerY + dy < this.mazeSize) {
-                    this.maze[centerY + dy][centerX + dx] = 0;
-                }
-            }
-        }
-        
-        // Draw animated Zephyrus Hub
-        this.ctx.save();
-        this.ctx.translate(hubX, hubY);
-        
-        // Outer glow ring
-        const glowSize = this.cellSize * 0.8;
-        const glowPulse = Math.sin(time * 2) * 0.2 + 0.8;
-        this.ctx.shadowColor = '#689a94';
-        this.ctx.shadowBlur = 25 * glowPulse;
-        this.ctx.strokeStyle = 'rgba(104, 154, 148, 0.6)';
-        this.ctx.lineWidth = 3;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, glowSize/2, 0, Math.PI * 2);
-        this.ctx.stroke();
-        
-        // Inner hub with Zephyrus colors
-        this.ctx.shadowBlur = 15;
-        this.ctx.fillStyle = '#689a94';
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, glowSize/3, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Hub details
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = `bold ${this.cellSize/4}px Hero_title`;
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Z', 0, this.cellSize/12);
-        
-        this.ctx.restore();
-    }
-
-    drawPlayer() {
-        // Enhanced player with retro glow and trail effect
-        this.ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-        this.ctx.shadowBlur = 25;
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.beginPath();
-        this.ctx.arc(this.playerPos.x, this.playerPos.y, this.playerSize, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Player core
-        this.ctx.shadowBlur = 10;
-        this.ctx.fillStyle = '#e0e0e0';
-        this.ctx.beginPath();
-        this.ctx.arc(this.playerPos.x, this.playerPos.y, this.playerSize * 0.6, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 0;
-    }
-
     drawUI() {
         // Draw score and collected items in top corners
         this.ctx.save();
@@ -1350,67 +1508,14 @@ class MazeGame {
         this.resetPlayerPosition();
         this.canMove = false;
 
-        // Create play again button if it doesn't exist
-        let playAgainBtn = document.getElementById('playAgainButton');
-        if (!playAgainBtn) {
-            playAgainBtn = document.createElement('button');
-            playAgainBtn.id = 'playAgainButton';
-            playAgainBtn.className = 'start-button';
-            playAgainBtn.style.marginTop = '1rem';
-            playAgainBtn.style.marginRight = '1rem';
-            playAgainBtn.textContent = 'Play Again';
-            
-            // Insert before the countdown element
-            countdown.parentNode.insertBefore(playAgainBtn, countdown);
-            
-            // Add click handler
-            playAgainBtn.addEventListener('click', () => {
-                this.restart();
-                this.hideModals();
-                this.showWelcomeModal();
-            });
-        }
-
-        // Create get prize button if it doesn't exist
-        let getPrizeBtn = document.getElementById('getPrizeButton');
-        if (!getPrizeBtn) {
-            getPrizeBtn = document.createElement('button');
-            getPrizeBtn.id = 'getPrizeButton';
-            getPrizeBtn.className = 'start-button';
-            getPrizeBtn.style.marginTop = '1rem';
-            getPrizeBtn.style.backgroundColor = '#689a94';
-            getPrizeBtn.style.borderColor = '#689a94';
-            getPrizeBtn.textContent = 'GET YOUR PRIZE';
-            
-            // Insert before the countdown element
-            countdown.parentNode.insertBefore(getPrizeBtn, countdown);
-            
-            // Add click handler
-            getPrizeBtn.addEventListener('click', () => {
-                window.open('https://www.intelssoft.com', '_blank');
-            });
-        }
-
-        // Update countdown display with enhanced message
-        const updateCountdown = (seconds) => {
-            countdown.innerHTML = `
-                <div style="margin-bottom: 0.5rem;">🎉 <strong>Mission Complete!</strong> 🎉</div>
-                <div style="margin-bottom: 0.5rem;">Score: <strong>${this.score}</strong> | Items Collected: <strong>${this.collectedItems.length}/${this.bonusItems.length}</strong></div>
-                <div style="margin-bottom: 1rem;">You successfully navigated to the Zephyrus Hub!</div>
-                <div style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">
-                    Auto-redirect to prize page in <strong>${seconds}</strong> seconds
-                </div>
-            `;
-        };
-
         // Initial countdown display
-        updateCountdown(timeLeft);
+        countdown.textContent = `Auto-redirect to prize page in\n${timeLeft} seconds`;
 
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft >= 0) {
-                updateCountdown(timeLeft);
+                countdown.textContent = `Auto-redirect to prize page in\n${timeLeft} seconds`;
             }
         }, 1000);
 
