@@ -295,43 +295,59 @@ class MazeGame {
             const moveY = dy * this.moveSpeed;
             
             // Calculate new position
-            const newX = this.playerPos.x + moveX;
-            const newY = this.playerPos.y + moveY;
+            let newX = this.playerPos.x + moveX;
+            let newY = this.playerPos.y + moveY;
             
-            // Only update if no collision
-            if (!this.checkWallCollision(newX, newY)) {
+            // Check collision for both axes and handle them separately
+            const canMoveX = !this.checkWallCollision(newX, this.playerPos.y);
+            const canMoveY = !this.checkWallCollision(this.playerPos.x, newY);
+            const canMoveBoth = !this.checkWallCollision(newX, newY);
+            
+            // Determine final position based on collision results
+            if (canMoveBoth) {
+                // No collision, move normally
                 this.playerPos.x = newX;
                 this.playerPos.y = newY;
-                
-                // Add new position to trail with timestamp
-                const currentTime = performance.now();
-                this.trail.push({
-                    x: this.playerPos.x,
-                    y: this.playerPos.y,
-                    timestamp: currentTime
-                });
-                
-                // Remove old trail segments
-                const cutoffTime = currentTime - this.trailDuration;
-                while (this.trail.length > 0 && this.trail[0].timestamp < cutoffTime) {
-                    this.trail.shift();
-                }
-
-                // Check for win condition
-                const distanceToEnd = Math.sqrt(
-                    Math.pow(this.playerPos.x - this.endPos.x, 2) + 
-                    Math.pow(this.playerPos.y - this.endPos.y, 2)
-                );
-                
-                if (distanceToEnd < this.cellSize * 0.5) {
-                    this.isGameComplete = true;
-                    this.canMove = false;
-                    this.targetPos = { ...this.playerPos };
-                    this.showSuccessModal();
-                }
+            } else if (canMoveX && !canMoveY) {
+                // Can move horizontally but not vertically - slide along wall
+                this.playerPos.x = newX;
+                // Keep Y position, stop vertical movement
+                this.targetPos.y = this.playerPos.y;
+            } else if (canMoveY && !canMoveX) {
+                // Can move vertically but not horizontally - slide along wall
+                this.playerPos.y = newY;
+                // Keep X position, stop horizontal movement
+                this.targetPos.x = this.playerPos.x;
             } else {
-                // If collision, just stop movement (no game over)
+                // Cannot move in either direction - completely blocked
                 this.targetPos = { ...this.playerPos };
+            }
+            
+            // Add new position to trail with timestamp
+            const currentTime = performance.now();
+            this.trail.push({
+                x: this.playerPos.x,
+                y: this.playerPos.y,
+                timestamp: currentTime
+            });
+            
+            // Remove old trail segments
+            const cutoffTime = currentTime - this.trailDuration;
+            while (this.trail.length > 0 && this.trail[0].timestamp < cutoffTime) {
+                this.trail.shift();
+            }
+
+            // Check for win condition
+            const distanceToEnd = Math.sqrt(
+                Math.pow(this.playerPos.x - this.endPos.x, 2) + 
+                Math.pow(this.playerPos.y - this.endPos.y, 2)
+            );
+            
+            if (distanceToEnd < this.cellSize * 0.5) {
+                this.isGameComplete = true;
+                this.canMove = false;
+                this.targetPos = { ...this.playerPos };
+                this.showSuccessModal();
             }
         }
     }
