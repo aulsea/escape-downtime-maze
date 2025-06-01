@@ -4,7 +4,8 @@ const urlsToCache = [
   './index.html',
   './game.js',
   './manifest.json',
-  './zephyrus-icon.svg'
+  './zephyrus-icon.svg',
+  './qr-code.svg'
 ];
 
 self.addEventListener('install', function(event) {

@@ -437,7 +437,7 @@ class MazeGame {
                 this.getDistance(x, y, 1, 1) > 2 && // Not near start
                 !this.isOnCriticalPath(x, y) && // Not on critical path
                 !this.isOnPath(x, y) && // Not on special paths
-                !this.isPositionOccupied(x, y, 1.5)) { // Not too close to existing items
+                !this.isPositionOccupied(x, y, 2.0)) { // Increased minimum distance to prevent overlapping
                 
                 const type = bonusTypes[bonusPlaced % bonusTypes.length];
                 this.bonusItems.push({
@@ -445,10 +445,13 @@ class MazeGame {
                     y: y * this.cellSize + this.cellSize / 2,
                     type: type,
                     collected: false,
-                    animationOffset: Math.random() * Math.PI * 2
+                    animationOffset: Math.random() * Math.PI * 2,
+                    gridX: x, // Store grid coordinates for collision detection
+                    gridY: y
                 });
                 bonusPlaced++;
             }
+            attempts++;
         }
         
         // Place obstacles only in very safe areas that don't block passages
@@ -503,17 +506,24 @@ class MazeGame {
         }
         
         // Add some bonus items on the safe path for guaranteed collection opportunities
+        // BUT check for collisions first!
         for (let i = 1; i < this.safePath.length - 1; i += 3) { // Every third position
             const pathPoint = this.safePath[i];
-            const type = bonusTypes[i % bonusTypes.length];
             
-            this.bonusItems.push({
-                x: pathPoint.x * this.cellSize + this.cellSize / 2,
-                y: pathPoint.y * this.cellSize + this.cellSize / 2,
-                type: type,
-                collected: false,
-                animationOffset: Math.random() * Math.PI * 2
-            });
+            // Check if this position is already occupied by another item
+            if (!this.isPositionOccupied(pathPoint.x, pathPoint.y, 1.5)) {
+                const type = bonusTypes[i % bonusTypes.length];
+                
+                this.bonusItems.push({
+                    x: pathPoint.x * this.cellSize + this.cellSize / 2,
+                    y: pathPoint.y * this.cellSize + this.cellSize / 2,
+                    type: type,
+                    collected: false,
+                    animationOffset: Math.random() * Math.PI * 2,
+                    gridX: pathPoint.x, // Store grid coordinates
+                    gridY: pathPoint.y
+                });
+            }
         }
     }
 
