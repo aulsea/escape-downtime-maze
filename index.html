@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="zephyrus-icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hero_title:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hero_title:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -57,6 +57,8 @@
             opacity: 0.8;
             transition: opacity 0.3s ease;
             z-index: 100;
+            object-fit: contain;
+            display: block;
         }
 
         .zephyrus-logo:hover {
@@ -67,12 +69,11 @@
             font-size: 2.5em;
             margin-bottom: 0.5em;
             font-weight: 700;
-            letter-spacing: 0.05em;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            color: transparent;
-            -webkit-text-stroke: 1px #ffffff;
-            text-stroke: 1px #ffffff;
-            font-family: 'Hero_title', sans-serif;
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.6);
+            font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .subtitle {
@@ -169,30 +170,51 @@
         }
 
         .start-button {
-            background: transparent;
+            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 1rem 2rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 1.2rem 2.5rem;
             border-radius: 12px;
-            font-size: 1.2em;
-            font-weight: 600;
+            font-size: 1.3em;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
-            font-family: 'Hero_title', sans-serif;
-            min-width: 160px;
-            margin-top: 1rem;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            min-width: 200px;
+            margin: 1.5rem auto 0 auto;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 1.5px;
+            box-shadow: 0 0 20px rgba(79, 142, 247, 0.4);
+            position: relative;
+            overflow: hidden;
+            display: block;
+        }
+
+        .start-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
 
         .start-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
+            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(79, 142, 247, 0.6);
+        }
+
+        .start-button:hover::before {
+            left: 100%;
         }
 
         .start-button:active {
-            transform: translateY(0);
+            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
+            transform: translateY(-1px);
         }
 
         .success-modal p {
@@ -201,53 +223,276 @@
             font-size: 1.2em;
         }
 
-        .promo-code {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 1rem 1.8rem;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 1.4em;
-            letter-spacing: 0.1em;
-            margin: 1rem 0;
-            display: inline-block;
-            color: white;
-            font-weight: bold;
+        /* Beautiful Success Modal Styles */
+        .success-modal {
+            max-width: 500px;
+            padding: 0;
+            background: rgba(10, 10, 10, 0.98);
+            border: 2px solid rgba(79, 142, 247, 0.3);
+            box-shadow: 0 20px 60px rgba(79, 142, 247, 0.2);
+            overflow: hidden;
+            position: relative;
         }
 
-        .countdown {
-            font-size: 1.1em;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 1rem;
-            min-height: 2.5em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .success-header {
+            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
+            padding: 2rem;
             text-align: center;
-            white-space: pre-line;
-            line-height: 1.4;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .success-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shine 3s ease-in-out infinite;
+        }
+
+        .success-header h2 {
+            margin: 0;
+            font-size: 28pt;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6);
+            animation: celebrationPulse 2s ease-in-out infinite alternate;
+            position: relative;
+            z-index: 2;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .success-subtitle {
+            font-size: 16pt;
+            color: #DDDDDD;
+            margin-top: 0.5rem;
+            font-weight: 400;
+            position: relative;
+            z-index: 2;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .success-content {
+            padding: 2rem;
+        }
+
+        .reward-info {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .celebration-text {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .promo-label {
+            font-size: 1.1em;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .buttons-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .claim-button, .replay-button {
+            flex: 1;
+            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(79, 142, 247, 0.3);
+        }
+
+        .claim-button:hover, .replay-button:hover {
+            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.5);
+        }
+
+        .claim-button:active, .replay-button:active {
+            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
+            transform: translateY(0);
+        }
+
+        .promo-code-box {
+            background: #222222;
+            border: 2px solid #4F8EF7;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.4em;
+            font-weight: bold;
+            letter-spacing: 0.15em;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .qr-hint {
+            font-size: 12pt;
+            color: #AAAAAA;
+            margin-bottom: 1rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .qr-code {
-            margin: 2rem auto 1rem;
-            padding: 1rem;
             background: white;
-            border-radius: 12px;
+            border-radius: 15px;
+            padding: 1.2rem;
             display: inline-block;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 0.5rem;
         }
 
         .qr-code img {
             display: block;
             width: 150px;
             height: 150px;
+            border-radius: 8px;
         }
 
-        .qr-text {
-            font-size: 0.9em;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 0.5rem;
-            font-style: italic;
+        .qr-caption {
+            font-size: 12pt;
+            color: #888888;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            margin-bottom: 2.5rem;
+        }
+
+        .success-footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .countdown {
+            font-size: 12pt;
+            color: #BBBBBB;
+            margin: 0;
+            font-weight: 500;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .celebration-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                        radial-gradient(circle at 60% 20%, rgba(212, 160, 23, 0.1) 1px, transparent 1px),
+                        radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            animation: particleFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes particleFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(120deg); }
+            66% { transform: translateY(5px) rotate(240deg); }
+        }
+
+        /* Mobile responsiveness for success modal */
+        @media (max-width: 767px) {
+            .success-modal {
+                max-width: 95vw;
+                margin: 0 10px;
+            }
+            
+            .success-header {
+                padding: 1.5rem;
+            }
+            
+            .success-header h2 {
+                font-size: 1.8em;
+            }
+            
+            .success-subtitle {
+                font-size: 1em;
+            }
+            
+            .success-content {
+                padding: 1.5rem;
+            }
+            
+            .achievement-badge {
+                flex-direction: column;
+                text-align: center;
+                padding: 1rem;
+            }
+            
+            .badge-icon {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+                font-size: 2.5em;
+            }
+            
+            .badge-text {
+                text-align: center;
+            }
+            
+            .promo-code {
+                font-size: 1.4em;
+                padding: 0.8rem 1.5rem;
+            }
+            
+            .qr-code img {
+                width: 120px;
+                height: 120px;
+            }
+        }
+
+        .welcome-text {
+            font-size: 1.1em;
+            margin-bottom: 1.2em;
+            color: #ffffff;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            font-family: 'Hero_title', sans-serif;
+            line-height: 1.6;
+        }
+
+        .path-choice {
+            font-size: 1.05em;
+            margin-bottom: 1.5em;
+            color: #ffffff;
+            font-weight: 500;
+            font-family: 'Hero_title', sans-serif;
+            line-height: 1.5;
+        }
+
+        .modal welcome-modal p {
+            margin-bottom: 1.2em;
         }
 
         @media (min-width: 768px) and (max-width: 1024px) {
@@ -363,34 +608,345 @@
             text-decoration: underline;
             text-underline-offset: 4px;
         }
+
+        /* Stylish Welcome Modal Styles */
+        .welcome-modal {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .welcome-modal h2 {
+            font-size: 2.4em;
+            letter-spacing: 1.5px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .welcome-logo {
+            filter: drop-shadow(0 0 10px #4F8EF7) drop-shadow(0 0 20px #4F8EF7);
+            animation: logoGlow 2s ease-in-out infinite alternate;
+            vertical-align: middle;
+        }
+
+        @keyframes logoGlow {
+            0% { filter: drop-shadow(0 0 10px #4F8EF7) drop-shadow(0 0 20px #4F8EF7); }
+            100% { filter: drop-shadow(0 0 15px #70A7FF) drop-shadow(0 0 25px #70A7FF); }
+        }
+
+        .neon-highlight {
+            color: #4F8EF7;
+            text-shadow: 0 0 10px #4F8EF7, 0 0 20px #4F8EF7, 0 0 30px #4F8EF7;
+            animation: neonGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes neonGlow {
+            0% { text-shadow: 0 0 10px #4F8EF7, 0 0 20px #4F8EF7, 0 0 30px #4F8EF7; }
+            100% { text-shadow: 0 0 15px #70A7FF, 0 0 25px #70A7FF, 0 0 35px #70A7FF; }
+        }
+
+        .mission-brief {
+            text-align: center;
+            margin: 2rem 0;
+            line-height: 1.8;
+        }
+
+        .briefing-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(77, 138, 227, 0.15), rgba(104, 154, 148, 0.15));
+            border: 2px solid rgba(79, 142, 247, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(79, 142, 247, 0.2);
+        }
+
+        .reward-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(212, 160, 23, 0.2), rgba(255, 193, 7, 0.15));
+            border: 2px solid rgba(212, 160, 23, 0.4);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(212, 160, 23, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 1.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .briefing-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem auto;
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #ffffff;
+            text-align: center;
+            word-spacing: normal;
+            white-space: normal;
+            max-width: 90%;
+            gap: 1rem;
+        }
+
+        .briefing-text {
+            flex: 0 1 auto;
+            word-spacing: normal;
+            letter-spacing: normal;
+            text-align: left;
+        }
+
+        .brief-icon {
+            font-size: 1.8em;
+            margin-right: 0;
+            margin-top: 0.1rem;
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
+            animation: iconGlow 2s ease-in-out infinite alternate;
+            flex-shrink: 0;
+            width: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .reward-text {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #ffffff;
+            margin: 0;
+            text-align: center;
+        }
+
+        .start-prompt {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 500;
+            color: #CCCCCC;
+            margin: 2rem 0 1rem 0;
+            letter-spacing: 0.02em;
+        }
+
+        .timer-prompt {
+            text-align: center;
+            font-size: 12pt;
+            color: #BBBBBB;
+            margin-top: 1rem;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .game-subtitle {
+            font-size: 14pt;
+            color: #CCCCCC;
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .legend-panel {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 320px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3rem;
+            font-size: 0.9em;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-icon {
+            font-size: 24px;
+            margin-right: 0.5rem;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-size: 11pt;
+            line-height: 1.3;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .legend-item.good .legend-text {
+            color: #A8E06F;
+        }
+
+        .legend-item.bad .legend-text {
+            color: #FF4C4C;
+        }
+
+        /* Failure Screen Styles */
+        .failure-modal {
+            background: linear-gradient(135deg, #330000, #110000);
+            border: 2px solid rgba(244, 67, 54, 0.3);
+            box-shadow: 0 20px 60px rgba(244, 67, 54, 0.2);
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .failure-content {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .failure-heading {
+            font-size: 28pt;
+            font-weight: 700;
+            color: #FF4C4C;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 0 0 1rem 0;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .failure-subtitle {
+            font-size: 16pt;
+            color: #DDDDDD;
+            font-weight: 400;
+            margin-bottom: 2rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .failure-button {
+            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 1.2rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1.3em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            box-shadow: 0 0 20px rgba(79, 142, 247, 0.4);
+        }
+
+        .failure-button:hover {
+            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.6);
+        }
+
+        .failure-button:active {
+            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
+            transform: translateY(0);
+        }
+
+        .glitch-effect {
+            animation: glitch 0.2s ease-in-out 3;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        /* General animation keyframes */
+        @keyframes shine {
+            0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        @keyframes celebrationPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes iconGlow {
+            0% {
+                filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+                transform: scale(1);
+            }
+            100% {
+                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.6));
+                transform: scale(1.05);
+            }
+        }
+
+        .replay-button {
+            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(79, 142, 247, 0.3);
+            display: block;
+            margin: 0 auto 1.5rem auto;
+            min-width: 200px;
+        }
+
+        .replay-button:hover {
+            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.5);
+        }
+
+        .replay-button:active {
+            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
     <div id="game-wrapper">
     <div class="game-container">
-            <svg class="zephyrus-logo" width="768" height="174" viewBox="0 0 768 174" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg class="zephyrus-logo" width="240" height="174" viewBox="0 0 240 174" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g clip-path="url(#clip0_11234_2850)">
-                    <path d="M281.039 88.9999V79.3399L315.689 26.1049H281.249V15.4999H330.284V25.1599L295.424 78.3949H330.494V88.9999H281.039Z" fill="white"/>
-                    <path d="M367.389 90.2599C362.139 90.2599 357.519 89.1399 353.529 86.8999C349.539 84.5899 346.424 81.3699 344.184 77.2399C341.944 73.1099 340.824 68.3499 340.824 62.9599C340.824 57.3599 341.909 52.4599 344.079 48.2599C346.319 44.0599 349.434 40.7699 353.424 38.3899C357.484 36.0099 362.174 34.8199 367.494 34.8199C372.674 34.8199 377.189 35.9749 381.039 38.2849C384.889 40.5949 387.864 43.7099 389.964 47.6299C392.064 51.4799 393.114 55.8199 393.114 60.6499C393.114 61.3499 393.114 62.1199 393.114 62.9599C393.114 63.7999 393.044 64.6749 392.904 65.5849H349.854V57.4999H380.409C380.269 53.6499 378.974 50.6399 376.524 48.4699C374.074 46.2299 371.029 45.1099 367.389 45.1099C364.799 45.1099 362.419 45.7049 360.249 46.8949C358.079 48.0849 356.364 49.8699 355.104 52.2499C353.844 54.5599 353.214 57.4999 353.214 61.0699V64.1149C353.214 67.4049 353.809 70.2399 354.999 72.6199C356.259 74.9999 357.939 76.8199 360.039 78.0799C362.209 79.2699 364.624 79.8649 367.284 79.8649C370.224 79.8649 372.639 79.2349 374.529 77.9749C376.489 76.7149 377.924 75.0349 378.834 72.9349H391.644C390.664 76.2249 389.054 79.1999 386.814 81.8599C384.574 84.4499 381.809 86.5149 378.519 88.0549C375.229 89.5249 371.519 90.2599 367.389 90.2599Z" fill="white"/>
-                    <path d="M404.748 112.1V36.0799H415.983L417.348 43.7449C418.468 42.2049 419.798 40.7699 421.338 39.4399C422.948 38.0399 424.873 36.9199 427.113 36.0799C429.423 35.2399 432.048 34.8199 434.988 34.8199C439.958 34.8199 444.333 36.0449 448.113 38.4949C451.963 40.9449 454.973 44.2699 457.143 48.4699C459.313 52.5999 460.398 57.3249 460.398 62.6449C460.398 67.9649 459.278 72.7249 457.038 76.9249C454.868 81.0549 451.858 84.3099 448.008 86.6899C444.228 89.0699 439.888 90.2599 434.988 90.2599C430.998 90.2599 427.498 89.5249 424.488 88.0549C421.548 86.5149 419.168 84.3449 417.348 81.5449V112.1H404.748Z" fill="white"/>
-                    <path d="M472.629 88.9999V13.3999H485.229V44.2699C486.979 41.3999 489.359 39.1249 492.369 37.4449C495.379 35.6949 498.774 34.8199 502.554 34.8199C506.894 34.8199 510.569 35.7299 513.579 37.5499C516.589 39.2999 518.864 41.9249 520.404 45.4249C522.014 48.8549 522.819 53.1599 522.819 58.3399V88.9999H510.324V59.4949C510.324 54.9449 509.344 51.4799 507.384 49.0999C505.494 46.7199 502.589 45.5299 498.669 45.5299C496.149 45.5299 493.874 46.1599 491.844 47.4199C489.814 48.6099 488.204 50.3599 487.014 52.6699C485.824 54.9099 485.229 57.6749 485.229 60.9649V88.9999H472.629Z" fill="white"/>
-                    <path d="M540.865 112.1L553.78 83.1199H550.63L529.525 36.0799H543.28L559.03 71.9899L573.94 36.0799H587.275L554.2 112.1H540.865Z" fill="white"/>
-                    <path d="M596.393 88.9999V36.0799H607.628L608.783 45.9499C610.043 43.6399 611.618 41.6799 613.508 40.0699C615.398 38.3899 617.603 37.0949 620.123 36.1849C622.713 35.2749 625.548 34.8199 628.628 34.8199V48.1549H624.218C622.118 48.1549 620.123 48.4349 618.233 48.9949C616.343 49.4849 614.698 50.3249 613.298 51.5149C611.968 52.6349 610.918 54.2099 610.148 56.2399C609.378 58.1999 608.993 60.6849 608.993 63.6949V88.9999H596.393Z" fill="white"/>
-                    <path d="M657.762 90.2599C653.492 90.2599 649.817 89.4199 646.737 87.7399C643.727 85.9899 641.417 83.3999 639.807 79.9699C638.197 76.4699 637.392 72.1649 637.392 67.0549V36.0799H649.992V65.7949C649.992 70.3449 650.937 73.8099 652.827 76.1899C654.787 78.4999 657.727 79.6549 661.647 79.6549C664.167 79.6549 666.407 79.0599 668.367 77.8699C670.397 76.6799 671.972 74.9649 673.092 72.7249C674.282 70.4149 674.877 67.6149 674.877 64.3249V36.0799H687.477V88.9999H676.347L675.402 80.1799C673.792 83.2599 671.447 85.7099 668.367 87.5299C665.357 89.3499 661.822 90.2599 657.762 90.2599Z" fill="white"/>
-                    <path d="M722.601 90.2599C717.911 90.2599 713.816 89.5249 710.316 88.0549C706.886 86.5149 704.156 84.4149 702.126 81.7549C700.166 79.0249 699.011 75.9099 698.661 72.4099H711.261C711.611 73.8799 712.241 75.2449 713.151 76.5049C714.061 77.6949 715.286 78.6399 716.826 79.3399C718.436 80.0399 720.326 80.3899 722.496 80.3899C724.596 80.3899 726.311 80.1099 727.641 79.5499C728.971 78.9199 729.951 78.1149 730.581 77.1349C731.211 76.1549 731.526 75.1049 731.526 73.9849C731.526 72.3049 731.071 71.0099 730.161 70.0999C729.251 69.1899 727.921 68.4899 726.171 67.9999C724.491 67.4399 722.461 66.9149 720.081 66.4249C717.561 65.9349 715.111 65.3399 712.731 64.6399C710.421 63.8699 708.321 62.9249 706.431 61.8049C704.611 60.6849 703.141 59.2499 702.021 57.4999C700.971 55.7499 700.446 53.6149 700.446 51.0949C700.446 48.0149 701.251 45.2499 702.861 42.7999C704.541 40.3499 706.921 38.4249 710.001 37.0249C713.151 35.5549 716.896 34.8199 721.236 34.8199C727.396 34.8199 732.296 36.2549 735.936 39.1249C739.646 41.9249 741.816 45.8799 742.446 50.9899H730.476C730.126 49.0299 729.146 47.5249 727.536 46.4749C725.926 45.3549 723.791 44.7949 721.131 44.7949C718.401 44.7949 716.301 45.3199 714.831 46.3699C713.431 47.3499 712.731 48.6799 712.731 50.3599C712.731 51.4099 713.151 52.3899 713.991 53.2999C714.901 54.1399 716.196 54.8749 717.876 55.5049C719.556 56.0649 721.621 56.6249 724.071 57.1849C727.991 57.9549 731.456 58.8649 734.466 59.9149C737.476 60.9649 739.856 62.5049 741.606 64.5349C743.356 66.5649 744.231 69.4349 744.231 73.1449C744.301 76.5049 743.426 79.4799 741.606 82.0699C739.856 84.6599 737.371 86.6899 734.151 88.1599C730.931 89.5599 727.081 90.2599 722.601 90.2599Z" fill="white"/>
                     <path d="M131.184 94.9869C104.429 107.33 78.223 110.467 53.666 100.962C80.705 124.524 116.669 124.622 138.699 113.225C169.734 97.1709 198.57 77.3789 209.049 78.7849C211.261 79.0809 189.15 68.2449 131.184 94.9869Z" fill="#4D8AE3"/>
                     <path d="M130.244 54.5989C69.9989 75.8579 47.0298 71.4139 28.0898 67.2559C43.5798 84.9179 83.5929 96.6809 146.96 71.5729C183.026 57.2819 235.259 61.1909 235.259 61.1909C235.259 61.1909 199.133 30.2899 130.244 54.5989Z" fill="#4D8AE3"/>
                     <path d="M147.061 0.520968C108.517 2.02297 60.6214 37.102 0.775391 29.976C14.1654 54.376 76.1124 49.09 100.653 40.918C219.069 1.48797 241.389 57.774 240.267 49.918C239.145 42.062 217.879 -2.23803 147.061 0.520968Z" fill="#4D8AE3"/>
                 </g>
                 <defs>
                     <clipPath id="clip0_11234_2850">
-                        <rect width="768" height="174" fill="white"/>
+                        <rect width="240" height="174" fill="white"/>
                     </clipPath>
                 </defs>
             </svg>
             <h1>
-                ESCAPE DOWNTIME
+                🔒 ESCAPE DOWNTIME
             </h1>
+            <div class="game-subtitle">Navigate the maze. Avoid red. Reach the flag.</div>
             <div id="maze-container">
                 <canvas id="mazeCanvas"></canvas>
             </div>
@@ -400,22 +956,79 @@
     <div id="modal-container">
         <div class="modal-overlay" id="modalOverlay"></div>
         <div class="modal success-modal" id="successModal">
-            <h2>You did it!</h2>
-            <p>You completed the Zephyrus challenge.</p>
-            <p>Claim your free VM & DR test-drive.</p>
-            <p>Use promo code:</p>
-            <div class="promo-code">ZEPHYRUSFREE</div>
-            <div class="countdown" id="countdown"></div>
-            <div class="qr-code">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.intelssoft.com" alt="QR Code to intelssoft.com">
+            <div class="success-header">
+                <h2>🏆 YOU DID IT!</h2>
+                <div class="success-subtitle">You successfully completed a mission-critical migration.</div>
             </div>
-            <div class="qr-text">Scan to visit intelssoft.com</div>
+            
+            <div class="success-content">
+                <div class="reward-info">
+                    <p class="celebration-text">🎉 Claim your free VM & DR test-drive.</p>
+                    <p class="promo-label">Use <strong>promo code:</strong></p>
+                </div>
+                
+                <div class="promo-code-box">ZEPHYRUSFREE</div>
+                
+                <div class="qr-section">
+                    <div class="qr-code">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://www.intelssoft.com" alt="QR Code to intelssoft.com">
+                    </div>
+                    <div class="qr-caption">Scan to visit intelssoft.com</div>
+                </div>
+                
+                <button class="replay-button" id="replayButton">REPLAY MISSION</button>
+            </div>
+            
+            <div class="success-footer">
+                <div class="countdown" id="countdown">🔄 Game will restart automatically in 30 seconds.</div>
+            </div>
+            
+            <div class="celebration-particles"></div>
         </div>
         <div class="modal welcome-modal" id="welcomeModal">
-            <h2>Welcome!</h2>
-            <p>Complete the maze and get a free test of <span class="highlight">Disaster Recovery</span> or <span class="highlight">Migration</span> product</p>
-            <p>Choose your path: <span class="highlight" style="color: #4CAF50;">🛡️ Safe route</span> or <span class="highlight" style="color: #F44336;">⚡ Fast but dangerous route</span></p>
-            <button class="start-button" id="startButton">Start Game</button>
+            <h2>
+                <svg class="welcome-logo" width="60" height="43" viewBox="0 0 240 174" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_welcome)">
+                        <path d="M131.184 94.9869C104.429 107.33 78.223 110.467 53.666 100.962C80.705 124.524 116.669 124.622 138.699 113.225C169.734 97.1709 198.57 77.3789 209.049 78.7849C211.261 79.0809 189.15 68.2449 131.184 94.9869Z" fill="#4F8EF7"/>
+                        <path d="M130.244 54.5989C69.9989 75.8579 47.0298 71.4139 28.0898 67.2559C43.5798 84.9179 83.5929 96.6809 146.96 71.5729C183.026 57.2819 235.259 61.1909 235.259 61.1909C235.259 61.1909 199.133 30.2899 130.244 54.5989Z" fill="#4F8EF7"/>
+                        <path d="M147.061 0.520968C108.517 2.02297 60.6214 37.102 0.775391 29.976C14.1654 54.376 76.1124 49.09 100.653 40.918C219.069 1.48797 241.389 57.774 240.267 49.918C239.145 42.062 217.879 -2.23803 147.061 0.520968Z" fill="#4F8EF7"/>
+                    </g>
+                    <defs>
+                        <clipPath id="clip0_welcome">
+                            <rect width="240" height="174" fill="white"/>
+                        </clipPath>
+                    </defs>
+                </svg>
+                WELCOME TO THE <span class="neon-highlight">ZEPHYRUS CHALLENGE</span>
+            </h2>
+            <div class="mission-brief">
+                <div class="briefing-section">
+                    <h3 class="section-title">Your mission:</h3>
+                    <p class="briefing-item">
+                        <span class="brief-icon">🛠️</span>
+                        <span class="briefing-text">
+                            <strong>Collect all system-critical components</strong> to complete the migration.
+                        </span>
+                    </p>
+                    <p class="briefing-item">
+                        <span class="brief-icon">🧨</span>
+                        <span class="briefing-text">
+                            <strong>Avoid all red threats</strong> — one hit and the mission fails.
+                        </span>
+                    </p>
+                </div>
+                
+                <div class="reward-section">
+                    <p class="reward-text">
+                        🎁 Complete the game to earn a promo code for a free test of<br>
+                        <strong>Disaster Recovery</strong> or <strong>Migration</strong> solutions.
+                    </p>
+                </div>
+                
+                <p class="start-prompt">🔹 Press <strong>START MISSION</strong> to begin.</p>
+            </div>
+            <button class="start-button" id="startButton">START MISSION</button>
+            <div class="timer-prompt">⏱ You have 45 seconds to complete this mission.</div>
         </div>
     </div>
 

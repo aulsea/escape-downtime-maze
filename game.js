@@ -42,6 +42,13 @@ class MazeGame {
         this.dangerPath = [];
         this.pathChosen = null;
         
+        // Collection effects
+        this.collectionEffects = [];
+        
+        // Explosion effects
+        this.explosionEffects = [];
+        this.gameOverDelay = null;
+        
         // Set canvas size based on device
         this.setupCanvasSize();
         
@@ -50,10 +57,7 @@ class MazeGame {
         this.playerPos = { ...this.startPosition };
         this.trail = [{ ...this.startPosition }];
         this.targetPos = { ...this.startPosition };
-        this.endPos = { 
-            x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2, // Back to corner
-            y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
-        };
+        this.endPos = null; // Will be set after maze generation
         this.isGameComplete = false;
         this.isGameOver = false;
         this.showGameOverScreen = false;
@@ -64,6 +68,7 @@ class MazeGame {
         // Generate the maze with new elements
         this.generateMaze();
         this.generateTwoPaths();
+        this.generateRandomEndPosition(); // Set random flag position
         this.generateMazeElements();
         
         // Set up touch controls
@@ -275,6 +280,9 @@ class MazeGame {
         this.obstacles = [];
         this.collectedItems = [];
         
+        // First, find all critical path cells that must remain obstacle-free
+        this.criticalPathCells = this.findCriticalPathCells();
+        
         // Generate bonus items in random open spaces (not on paths)
         const bonusTypes = ['backup', 'failover', 'cloud'];
         const bonusCount = Math.floor(this.mazeSize * 0.15);
@@ -287,7 +295,7 @@ class MazeGame {
             // Check if position is open and not on special paths
             if (this.maze[y][x] === 0 && 
                 this.getDistance(x, y, 1, 1) > 2 && // Not near start
-                this.getDistance(x, y, this.mazeSize-2, this.mazeSize-2) > 2 && // Not near end
+                !this.isOnCriticalPath(x, y) && // Not on critical path
                 !this.isOnPath(x, y)) { // Not on special paths
                 
                 const type = bonusTypes[bonusPlaced % bonusTypes.length];
@@ -302,25 +310,39 @@ class MazeGame {
             }
         }
         
-        // Place obstacles ONLY on the danger path
+        // Place obstacles only in non-critical areas
         const obstacleTypes = ['downtime', 'dataloss', 'crash'];
-        let obstacleIndex = 0;
+        const obstacleCount = Math.floor(Math.random() * 2) + 2; // Random 2 or 3 obstacles
         
-        for (let i = 1; i < this.dangerPath.length - 1; i += 2) { // Every other position
-            const pathPoint = this.dangerPath[i];
-            const type = obstacleTypes[obstacleIndex % obstacleTypes.length];
+        let obstaclesPlaced = 0;
+        let attempts = 0;
+        const maxAttempts = 100; // Reduced since we need fewer obstacles
+        
+        while (obstaclesPlaced < obstacleCount && attempts < maxAttempts) {
+            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             
-            this.obstacles.push({
-                x: pathPoint.x * this.cellSize + this.cellSize / 2,
-                y: pathPoint.y * this.cellSize + this.cellSize / 2,
-                type: type,
-                active: true,
-                animationOffset: Math.random() * Math.PI * 2
-            });
-            obstacleIndex++;
+            // Check if position is valid and safe for obstacle placement
+            if (this.maze[y][x] === 0 && 
+                this.getDistance(x, y, 1, 1) > 3 && // Not too close to start
+                !this.isOnCriticalPath(x, y) && // Never place on critical path
+                !this.isObstacleNearby(x, y) && // Not too close to other obstacles
+                !this.isBonusItemNearby(x, y)) { // Not too close to bonus items
+                
+                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                this.obstacles.push({
+                    x: x * this.cellSize + this.cellSize / 2,
+                    y: y * this.cellSize + this.cellSize / 2,
+                    type: type,
+                    active: true,
+                    animationOffset: Math.random() * Math.PI * 2
+                });
+                obstaclesPlaced++;
+            }
+            attempts++;
         }
         
-        // Add bonus items on the safe path
+        // Add some bonus items on the safe path for guaranteed collection opportunities
         for (let i = 1; i < this.safePath.length - 1; i += 3) { // Every third position
             const pathPoint = this.safePath[i];
             const type = bonusTypes[i % bonusTypes.length];
@@ -333,6 +355,72 @@ class MazeGame {
                 animationOffset: Math.random() * Math.PI * 2
             });
         }
+    }
+
+    findCriticalPathCells() {
+        // Find all cells that are critical for maintaining connectivity
+        const criticalCells = new Set();
+        const startX = 1;
+        const startY = 1;
+        const endX = Math.floor(this.endPos.x / this.cellSize);
+        const endY = Math.floor(this.endPos.y / this.cellSize);
+        
+        // For each open cell, check if removing it would disconnect start from end
+        for (let y = 1; y < this.mazeSize - 1; y++) {
+            for (let x = 1; x < this.mazeSize - 1; x++) {
+                if (this.maze[y][x] === 0) {
+                    // Temporarily block this cell
+                    this.maze[y][x] = 1;
+                    
+                    // Check if path still exists
+                    if (!this.canReachDestination(startX, startY, endX, endY)) {
+                        criticalCells.add(`${x},${y}`);
+                    }
+                    
+                    // Restore the cell
+                    this.maze[y][x] = 0;
+                }
+            }
+        }
+        
+        return criticalCells;
+    }
+
+    canReachDestination(startX, startY, endX, endY) {
+        const queue = [[startX, startY]];
+        const visited = new Set();
+        visited.add(`${startX},${startY}`);
+        
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        
+        while (queue.length > 0) {
+            const [x, y] = queue.shift();
+            
+            if (x === endX && y === endY) {
+                return true;
+            }
+            
+            for (const [dx, dy] of directions) {
+                const newX = x + dx;
+                const newY = y + dy;
+                const key = `${newX},${newY}`;
+                
+                if (newX >= 0 && newX < this.mazeSize && 
+                    newY >= 0 && newY < this.mazeSize &&
+                    !visited.has(key) &&
+                    this.maze[newY][newX] === 0) {
+                    
+                    visited.add(key);
+                    queue.push([newX, newY]);
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    isOnCriticalPath(x, y) {
+        return this.criticalPathCells && this.criticalPathCells.has(`${x},${y}`);
     }
 
     isOnPath(x, y) {
@@ -500,17 +588,20 @@ class MazeGame {
                 this.trail.shift();
             }
 
-            // Check for win condition at Zephyrus Hub (center)
-            const distanceToEnd = Math.sqrt(
-                Math.pow(this.playerPos.x - this.endPos.x, 2) + 
-                Math.pow(this.playerPos.y - this.endPos.y, 2)
-            );
-            
-            if (distanceToEnd < this.cellSize * 0.6) {
-                this.isGameComplete = true;
-                this.canMove = false;
-                this.targetPos = { ...this.playerPos };
-                this.showSuccessModal();
+            // Check for win condition at Zephyrus Hub (center) - only if all bonus items collected
+            const allBonusItemsCollected = this.bonusItems.every(item => item.collected);
+            if (allBonusItemsCollected) {
+                const distanceToEnd = Math.sqrt(
+                    Math.pow(this.playerPos.x - this.endPos.x, 2) + 
+                    Math.pow(this.playerPos.y - this.endPos.y, 2)
+                );
+                
+                if (distanceToEnd < this.cellSize * 0.6) {
+                    this.isGameComplete = true;
+                    this.canMove = false;
+                    this.targetPos = { ...this.playerPos };
+                    this.showSuccessModal();
+                }
             }
         }
     }
@@ -528,8 +619,11 @@ class MazeGame {
                     this.collectedItems.push(item);
                     this.score += 100;
                     
-                    // Add collection effect (could add sound here)
+                    // Add collection effect
                     this.createCollectionEffect(item.x, item.y, item.type);
+                    
+                    // Ensure game continues normally
+                    break; // Only collect one item per frame to prevent issues
                 }
             }
         }
@@ -544,75 +638,233 @@ class MazeGame {
                 );
                 
                 if (distance < this.playerSize + 8) { // Collision radius
-                    // Handle different obstacle types
-                    switch (obstacle.type) {
-                        case 'downtime':
-                            this.handleDowntimeTrap();
-                            break;
-                        case 'dataloss':
-                            this.handleDataLossWall();
-                            break;
-                        case 'crash':
-                            this.handleSystemCrash();
-                            break;
-                    }
+                    // Create explosion effect at collision point
+                    this.createExplosionEffect(obstacle.x, obstacle.y);
+                    
+                    // Stop player movement and trigger game over immediately
+                    this.isGameOver = true;
+                    this.canMove = false;
+                    this.targetPos = { ...this.playerPos };
                     obstacle.active = false; // Deactivate after collision
+                    
+                    // Show game over screen immediately
+                    this.drawGameOverScreen();
+                    
+                    return; // Exit early since collision occurred
                 }
             }
         }
     }
 
-    handleDowntimeTrap() {
-        // Slow player temporarily
-        this.moveSpeed *= 0.5;
-        setTimeout(() => {
-            this.moveSpeed = 0.15; // Reset to normal speed
-        }, 2000);
-        
-        this.createObstacleEffect('downtime');
-    }
-
-    handleDataLossWall() {
-        // Push player back and reset some progress
-        this.pushPlayerBack();
-        this.score = Math.max(0, this.score - 50);
-        
-        this.createObstacleEffect('dataloss');
-    }
-
-    handleSystemCrash() {
-        // Reset to start position
-        this.resetPlayerPosition();
-        this.retryCount++;
-        
-        this.createObstacleEffect('crash');
-    }
-
-    pushPlayerBack() {
-        // Push player back towards start
-        const backDistance = this.cellSize * 0.5;
-        const dx = this.startPosition.x - this.playerPos.x;
-        const dy = this.startPosition.y - this.playerPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 0) {
-            const ratio = backDistance / distance;
-            this.playerPos.x += dx * ratio;
-            this.playerPos.y += dy * ratio;
-            this.targetPos = { ...this.playerPos };
-        }
-    }
-
     createCollectionEffect(x, y, type) {
-        // Visual feedback for collecting items
-        // Could be enhanced with particles or animations
+        // Create simpler, more lightweight particle effect
+        const color = this.getBonusColor(type);
+        const particles = [];
+        
+        // Create fewer particles for better performance
+        const particleCount = 6; // Reduced from 12
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const speed = Math.random() * 4 + 2;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: Math.random() * 3 + 2,
+                life: 1.0,
+                decay: 0.025 // Faster decay for quicker cleanup
+            });
+        }
+        
+        this.collectionEffects.push({
+            particles: particles,
+            color: color,
+            type: type,
+            startTime: performance.now()
+        });
+        
         console.log(`Collected ${type} bonus!`);
     }
 
-    createObstacleEffect(type) {
-        // Visual feedback for obstacle collisions
-        // Could be enhanced with screen shake or color effects
-        console.log(`Hit ${type} obstacle!`);
+    createExplosionEffect(x, y) {
+        // Create dramatic explosion effect
+        const particles = [];
+        
+        // Create multiple particle rings for dramatic effect
+        const particleCount = 20;
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const speed = Math.random() * 12 + 8; // Fast explosion particles
+            const size = Math.random() * 6 + 4; // Larger particles
+            
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: size,
+                life: 1.0,
+                decay: 0.02, // Slower decay for longer effect
+                color: this.getExplosionColor(i, particleCount)
+            });
+        }
+        
+        // Add some slower, larger debris particles
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 6 + 2;
+            
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: Math.random() * 8 + 6,
+                life: 1.0,
+                decay: 0.015, // Even slower decay
+                color: '#FF5722' // Orange debris
+            });
+        }
+        
+        this.explosionEffects.push({
+            particles: particles,
+            startTime: performance.now()
+        });
+        
+        console.log('Explosion created!');
+    }
+
+    getExplosionColor(index, total) {
+        // Create fire-like colors for explosion
+        const colors = ['#FF1744', '#FF5722', '#FF9800', '#FFC107', '#FFEB3B'];
+        return colors[index % colors.length];
+    }
+
+    drawCollectionEffects() {
+        if (this.collectionEffects.length === 0) return;
+        
+        // Save the entire canvas state before drawing any effects
+        this.ctx.save();
+        
+        const currentTime = performance.now();
+        
+        // Draw all active collection effects
+        for (let i = this.collectionEffects.length - 1; i >= 0; i--) {
+            const effect = this.collectionEffects[i];
+            let allParticlesDead = true;
+            
+            for (const particle of effect.particles) {
+                if (particle.life > 0) {
+                    allParticlesDead = false;
+                    
+                    // Update particle
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vx *= 0.98; // Friction
+                    particle.vy *= 0.98;
+                    particle.life -= particle.decay;
+                    
+                    // Draw particle with isolated state
+                    this.ctx.save();
+                    this.ctx.globalCompositeOperation = 'source-over';
+                    this.ctx.shadowColor = effect.color;
+                    this.ctx.shadowBlur = 8 * particle.life;
+                    this.ctx.globalAlpha = Math.max(0, particle.life);
+                    this.ctx.fillStyle = effect.color;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        this.canvasOffset.x + particle.x,
+                        this.canvasOffset.y + particle.y,
+                        Math.max(1, particle.size * particle.life),
+                        0,
+                        Math.PI * 2
+                    );
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
+            }
+            
+            // Remove dead effects
+            if (allParticlesDead || currentTime - effect.startTime > 2000) {
+                this.collectionEffects.splice(i, 1);
+            }
+        }
+        
+        // Restore the entire canvas state
+        this.ctx.restore();
+        
+        // Force reset all canvas properties to ensure clean state
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        this.ctx.globalCompositeOperation = 'source-over';
+    }
+
+    drawExplosionEffects() {
+        if (this.explosionEffects.length === 0) return;
+        
+        // Save the entire canvas state before drawing any effects
+        this.ctx.save();
+        
+        const currentTime = performance.now();
+        
+        // Draw all active explosion effects
+        for (let i = this.explosionEffects.length - 1; i >= 0; i--) {
+            const effect = this.explosionEffects[i];
+            let allParticlesDead = true;
+            
+            for (const particle of effect.particles) {
+                if (particle.life > 0) {
+                    allParticlesDead = false;
+                    
+                    // Update particle with gravity effect
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vx *= 0.95; // Air resistance
+                    particle.vy += 0.2; // Gravity
+                    particle.life -= particle.decay;
+                    
+                    // Draw particle with intense glow
+                    this.ctx.save();
+                    this.ctx.globalCompositeOperation = 'screen'; // Additive blending for fire effect
+                    this.ctx.shadowColor = particle.color;
+                    this.ctx.shadowBlur = 20 * particle.life;
+                    this.ctx.globalAlpha = Math.max(0, particle.life);
+                    this.ctx.fillStyle = particle.color;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        this.canvasOffset.x + particle.x,
+                        this.canvasOffset.y + particle.y,
+                        Math.max(1, particle.size * particle.life),
+                        0,
+                        Math.PI * 2
+                    );
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
+            }
+            
+            // Remove dead effects after 3 seconds
+            if (allParticlesDead || currentTime - effect.startTime > 3000) {
+                this.explosionEffects.splice(i, 1);
+            }
+        }
+        
+        // Restore the entire canvas state
+        this.ctx.restore();
+        
+        // Force reset all canvas properties to ensure clean state
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        this.ctx.globalCompositeOperation = 'source-over';
     }
 
     pushPlayerOutOfWall() {
@@ -780,6 +1032,10 @@ class MazeGame {
             clearInterval(this.countdownInterval);
             this.countdownInterval = null;
         }
+        if (this.gameOverDelay) {
+            clearTimeout(this.gameOverDelay);
+            this.gameOverDelay = null;
+        }
 
         // Hide all modals
         this.hideModals();
@@ -789,11 +1045,14 @@ class MazeGame {
         this.score = 0;
         this.retryCount = 0;
         this.collectedItems = [];
+        this.collectionEffects = [];
+        this.explosionEffects = [];
         this.moveSpeed = 0.15; // Reset speed in case it was slowed
         
         // Regenerate maze and elements
         this.generateMaze();
         this.generateTwoPaths();
+        this.generateRandomEndPosition(); // Generate new random flag position
         this.generateMazeElements();
 
         // Reset game flags
@@ -834,26 +1093,26 @@ class MazeGame {
         if (!gameOverModal) {
             gameOverModal = document.createElement('div');
             gameOverModal.id = 'gameOverModal';
-            gameOverModal.className = 'modal';
+            gameOverModal.className = 'modal failure-modal';
             
             const modalContent = document.createElement('div');
-            modalContent.className = 'modal-content';
+            modalContent.className = 'failure-content';
             
             const heading = document.createElement('h2');
-            heading.textContent = 'Data did not survive';
+            heading.className = 'failure-heading';
+            heading.innerHTML = '⚠️ DATA DID NOT SURVIVE';
             
-            const levelText = document.createElement('p');
-            levelText.textContent = `Level ${this.currentLevel}`;
-            levelText.style.color = '#9ab3f5';
-            levelText.style.marginBottom = '1rem';
+            const subtitle = document.createElement('div');
+            subtitle.className = 'failure-subtitle';
+            subtitle.textContent = 'Mission failed';
             
             const button = document.createElement('button');
             button.id = 'startOverButton';
-            button.className = 'start-button';
-            button.textContent = 'Try Again';
+            button.className = 'failure-button';
+            button.textContent = 'TRY AGAIN';
             
             modalContent.appendChild(heading);
-            modalContent.appendChild(levelText);
+            modalContent.appendChild(subtitle);
             modalContent.appendChild(button);
             gameOverModal.appendChild(modalContent);
             document.getElementById('modal-container').appendChild(gameOverModal);
@@ -866,18 +1125,28 @@ class MazeGame {
             });
         } else {
             // Update existing modal text
-            const heading = gameOverModal.querySelector('h2');
-            const levelText = gameOverModal.querySelector('p');
+            const heading = gameOverModal.querySelector('.failure-heading');
+            const subtitle = gameOverModal.querySelector('.failure-subtitle');
             if (heading) {
-                heading.textContent = 'Data did not survive';
+                heading.innerHTML = '⚠️ DATA DID NOT SURVIVE';
             }
-            if (levelText) {
-                levelText.textContent = `Level ${this.currentLevel}`;
+            if (subtitle) {
+                subtitle.textContent = 'Mission failed';
             }
             const button = gameOverModal.querySelector('button');
             if (button) {
-                button.textContent = 'Try Again';
+                button.textContent = 'TRY AGAIN';
             }
+        }
+
+        // Trigger glitch effect
+        if (gameOverModal.querySelector('.failure-heading')) {
+            gameOverModal.querySelector('.failure-heading').classList.add('glitch-effect');
+            setTimeout(() => {
+                if (gameOverModal.querySelector('.failure-heading')) {
+                    gameOverModal.querySelector('.failure-heading').classList.remove('glitch-effect');
+                }
+            }, 1000);
         }
 
         // Show modal and overlay
@@ -1060,8 +1329,8 @@ class MazeGame {
     }
 
     drawMaze() {
-        // Clear canvas with dark background
-        this.ctx.fillStyle = '#0a0a0a';
+        // Clear canvas with very dark background for better contrast
+        this.ctx.fillStyle = '#111111';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw paths with subtle background
@@ -1079,14 +1348,15 @@ class MazeGame {
             }
         }
 
-        // Highlight the two paths with different colors
-        this.drawPathHighlights();
-
-        // Draw walls
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        // Draw walls with lighter charcoal and 3D effect
+        this.ctx.strokeStyle = '#666666';
         this.ctx.lineWidth = this.wallThickness;
         this.ctx.lineCap = 'square';
         this.ctx.lineJoin = 'miter';
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.shadowBlur = 3;
+        this.ctx.shadowOffsetX = 1;
+        this.ctx.shadowOffsetY = 1;
         this.ctx.beginPath();
 
         for (let y = 0; y < this.mazeSize; y++) {
@@ -1116,6 +1386,12 @@ class MazeGame {
         }
         this.ctx.stroke();
 
+        // Reset shadow for other elements
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+
         // Draw bonus items with retro styling
         this.drawBonusItems();
         
@@ -1125,8 +1401,19 @@ class MazeGame {
         // Draw trail
         this.drawTrail();
 
-        // Draw finish point with Zephyrus-styled flag
+        // Draw collection effects (before player to avoid covering)
+        this.drawCollectionEffects();
+
+        // Draw explosion effects (for dramatic impact)
+        this.drawExplosionEffects();
+
+        // Draw finish point with Zephyrus-styled flag and pulsing glow
         this.drawZephyrusFlag();
+
+        // Reset canvas state before drawing player
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.shadowBlur = 0;
 
         // Draw player with enhanced glow
         this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
@@ -1142,41 +1429,28 @@ class MazeGame {
         );
         this.ctx.fill();
         
-        // Reset shadow
+        // Final comprehensive canvas state reset
         this.ctx.shadowColor = 'transparent';
         this.ctx.shadowBlur = 0;
-        
-        // Draw UI elements
-        this.drawUI();
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 0;
+        this.ctx.globalAlpha = 1.0;
     }
 
-    drawPathHighlights() {
-        // Draw safe path highlight (subtle green)
-        this.ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
-        for (const point of this.safePath) {
-            this.ctx.fillRect(
-                this.canvasOffset.x + point.x * this.cellSize,
-                this.canvasOffset.y + point.y * this.cellSize,
-                this.cellSize,
-                this.cellSize
-            );
-        }
-
-        // Draw danger path highlight (subtle red)
-        this.ctx.fillStyle = 'rgba(244, 67, 54, 0.1)';
-        for (const point of this.dangerPath) {
-            this.ctx.fillRect(
-                this.canvasOffset.x + point.x * this.cellSize,
-                this.canvasOffset.y + point.y * this.cellSize,
-                this.cellSize,
-                this.cellSize
-            );
-        }
+    drawUI() {
+        // UI elements removed - no score or items display
     }
 
     drawZephyrusFlag() {
+        // Only show the flag if all bonus items have been collected
+        const allBonusItemsCollected = this.bonusItems.every(item => item.collected);
+        if (!allBonusItemsCollected) {
+            return; // Don't draw the flag until all bonus items are collected
+        }
+        
         const flagX = this.canvasOffset.x + this.endPos.x;
         const flagY = this.canvasOffset.y + this.endPos.y;
+        const time = performance.now() * 0.003;
         
         // Draw stylish flag pole with Zephyrus gradient
         const poleGradient = this.ctx.createLinearGradient(
@@ -1198,7 +1472,6 @@ class MazeGame {
         // Draw stylish flag with Zephyrus colors and animation
         const flagWidth = this.playerSize * 3.5;
         const flagHeight = this.playerSize * 2;
-        const time = performance.now() * 0.003;
         
         // Create flag shape with wave effect
         this.ctx.beginPath();
@@ -1231,27 +1504,9 @@ class MazeGame {
         flagGradient.addColorStop(0.6, '#689a94');
         flagGradient.addColorStop(1, '#5a8579');
         
-        // Add flag glow
-        this.ctx.shadowColor = 'rgba(104, 154, 148, 0.6)';
-        this.ctx.shadowBlur = 15;
-        this.ctx.shadowOffsetX = 2;
-        this.ctx.shadowOffsetY = 2;
-        
         // Fill flag
         this.ctx.fillStyle = flagGradient;
         this.ctx.fill();
-        
-        // Reset shadow for flag details
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetX = 0;
-        this.ctx.shadowOffsetY = 0;
-        
-        // Add Zephyrus logo on flag
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = `bold ${this.playerSize}px Hero_title`;
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Z', flagX + flagWidth/2, flagY - this.playerSize/2);
         
         // Add flag details (stripes)
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -1441,33 +1696,11 @@ class MazeGame {
 
     getObstacleColor(type) {
         switch (type) {
-            case 'downtime': return '#FF5722';  // Red-Orange
-            case 'dataloss': return '#F44336';  // Red
-            case 'crash': return '#9C27B0';     // Purple
-            default: return '#ffffff';
+            case 'downtime': return '#FF4C4C';  // Dangerous red
+            case 'dataloss': return '#F44336';  // Dangerous red
+            case 'crash': return '#FF1744';     // Dangerous red (was purple, now red)
+            default: return '#FF4C4C';
         }
-    }
-
-    drawUI() {
-        // Draw score and collected items in top corners
-        this.ctx.save();
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = `${this.cellSize/2}px Hero_title`;
-        this.ctx.textAlign = 'left';
-        
-        // Score display
-        this.ctx.fillText(`Score: ${this.score}`, 10, 30);
-        
-        // Collected items counter
-        this.ctx.fillText(`Items: ${this.collectedItems.length}/${this.bonusItems.length}`, 10, 60);
-        
-        // Speed indicator when slowed
-        if (this.moveSpeed < 0.15) {
-            this.ctx.fillStyle = '#FF5722';
-            this.ctx.fillText('SLOWED!', 10, 90);
-        }
-        
-        this.ctx.restore();
     }
 
     animate(currentTime) {
@@ -1488,7 +1721,7 @@ class MazeGame {
         const modal = document.getElementById('successModal');
         const overlay = document.getElementById('modalOverlay');
         const countdown = document.getElementById('countdown');
-        let timeLeft = 20; // 20 seconds for auto-redirect
+        let timeLeft = 30; // 30 seconds for auto-restart
 
         // Clear any existing timeouts/intervals
         if (this.modalTimeout) {
@@ -1508,26 +1741,91 @@ class MazeGame {
         this.resetPlayerPosition();
         this.canMove = false;
 
+        // Set up REPLAY MISSION button
+        let replayBtn = document.getElementById('replayButton');
+        if (replayBtn) {
+            replayBtn.onclick = () => {
+                this.restart();
+                this.hideModals();
+                this.showWelcomeModal();
+            };
+        }
+
         // Initial countdown display
-        countdown.textContent = `Auto-redirect to prize page in\n${timeLeft} seconds`;
+        countdown.textContent = `🔄 Game will restart automatically in ${timeLeft} seconds.`;
 
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft >= 0) {
-                countdown.textContent = `Auto-redirect to prize page in\n${timeLeft} seconds`;
+                countdown.textContent = `🔄 Game will restart automatically in ${timeLeft} seconds.`;
             }
         }, 1000);
 
-        // Set timeout to auto-redirect to prize page
+        // Set timeout to auto-restart game
         this.modalTimeout = setTimeout(() => {
             if (this.countdownInterval) {
                 clearInterval(this.countdownInterval);
                 this.countdownInterval = null;
             }
-            // Auto-redirect to the prize page
-            window.open('https://www.intelssoft.com', '_blank');
-        }, 20000); // 20 seconds
+            // Auto-restart the game
+            this.restart();
+            this.hideModals();
+            this.showWelcomeModal();
+        }, 30000); // 30 seconds
+    }
+
+    isObstacleNearby(x, y) {
+        // Check if there's already an obstacle within 2 cells
+        for (let obstacle of this.obstacles) {
+            const obstacleX = Math.floor((obstacle.x - this.cellSize / 2) / this.cellSize);
+            const obstacleY = Math.floor((obstacle.y - this.cellSize / 2) / this.cellSize);
+            if (this.getDistance(x, y, obstacleX, obstacleY) < 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    isBonusItemNearby(x, y) {
+        // Check if there's already a bonus item within 2 cells
+        for (let item of this.bonusItems) {
+            const itemX = Math.floor((item.x - this.cellSize / 2) / this.cellSize);
+            const itemY = Math.floor((item.y - this.cellSize / 2) / this.cellSize);
+            if (this.getDistance(x, y, itemX, itemY) < 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    generateRandomEndPosition() {
+        // Find a random valid position for the flag
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        while (attempts < maxAttempts) {
+            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            
+            // Check if position is valid for flag placement
+            if (this.maze[y][x] === 0 && // Open space
+                this.getDistance(x, y, 1, 1) > 4) { // Not too close to start (at least 4 cells away)
+                
+                this.endPos = {
+                    x: x * this.cellSize + this.cellSize / 2,
+                    y: y * this.cellSize + this.cellSize / 2
+                };
+                return;
+            }
+            attempts++;
+        }
+        
+        // Fallback to original corner position if no valid position found
+        this.endPos = {
+            x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
+            y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
+        };
     }
 }
 
