@@ -1,11 +1,11 @@
-const CACHE_NAME = 'zephyrus-challenge-v1';
+const CACHE_NAME = 'zephyrus-challenge-v2';
 const urlsToCache = [
   './',
   './index.html',
   './game.js',
   './manifest.json',
   './zephyrus-icon.svg',
-  './qr-code.svg'
+  './qr-code-simple.svg'
 ];
 
 self.addEventListener('install', function(event) {
