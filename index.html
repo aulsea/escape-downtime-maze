@@ -231,6 +231,28 @@
             margin-top: 1rem;
         }
 
+        .qr-code {
+            margin: 2rem auto 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .qr-code img {
+            display: block;
+            width: 150px;
+            height: 150px;
+        }
+
+        .qr-text {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
         @media (min-width: 768px) and (max-width: 1024px) {
             .game-container {
                 padding: 2rem;
@@ -360,6 +382,10 @@
             <p>Your promo code:</p>
             <div class="promo-code">mobitimigrate</div>
             <div class="countdown" id="countdown"></div>
+            <div class="qr-code">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://mobiti.io" alt="QR Code to mobiti.io">
+            </div>
+            <div class="qr-text">Scan to visit mobiti.io</div>
             </div>
         <div class="modal welcome-modal" id="welcomeModal">
             <h2>Welcome!</h2>
