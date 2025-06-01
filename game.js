@@ -57,9 +57,9 @@ class MazeGame {
             this.trailDuration = 400; // Fast trail decay on mobile
             this.trailSegmentSpacing = 15; // Few trail segments for mobile
         } else {
-            this.maxTrailLength = 35;
-            this.trailDuration = 1000;
-            this.trailSegmentSpacing = 6;
+        this.maxTrailLength = 35;
+        this.trailDuration = 1000;
+        this.trailSegmentSpacing = 6;
         }
         
         this.trailColors = {
@@ -192,7 +192,7 @@ class MazeGame {
             if (this.isIPhone) {
                 // iPhone: Slightly smaller for better performance
                 baseSize = Math.min(viewportHeight * 0.6, viewportWidth * 0.8);
-            } else {
+        } else {
                 baseSize = Math.min(viewportHeight * 0.65, viewportWidth * 0.85);
             }
         } else if (viewportWidth <= 1024) {
@@ -268,16 +268,16 @@ class MazeGame {
             x: this.wallThickness * 2,
             y: this.wallThickness * 2
         };
-        
+
         // Store the canvas scale for coordinate calculations
         this.canvasScale = finalContainerSize / totalCanvasSize;
         
         // Update game positions only if this is initial setup
         if (!this.gameStarted) {
-            this.startPosition = {
-                x: this.cellSize * 1.5,
-                y: this.cellSize * 1.5
-            };
+        this.startPosition = {
+            x: this.cellSize * 1.5,
+            y: this.cellSize * 1.5
+        };
             
             this.playerPos = { ...this.startPosition };
             this.targetPos = { ...this.startPosition };
@@ -597,14 +597,12 @@ class MazeGame {
             return true;
         }
         
-        // iOS-specific optimized collision detection
-        if (this.isIOS) {
-            // Simplified collision detection for iOS devices
-            // Only check immediate adjacent cells instead of full 3x3 grid
-            const playerRadius = this.playerSize;
-            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // Only cardinal directions
-            
-            for (const [dx, dy] of directions) {
+        // Unified collision detection for all platforms to prevent inconsistencies
+        const playerRadius = this.playerSize;
+        
+        // Check each nearby cell that could contain a wall
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
                 const checkX = cellX + dx;
                 const checkY = cellY + dy;
                 
@@ -614,56 +612,25 @@ class MazeGame {
                     continue;
                 }
                 
-                // If this is a wall cell, do simplified collision check
+                // If this is a wall cell, check for collision
                 if (this.maze[checkY][checkX] === 1) {
-                    const wallCenterX = (checkX + 0.5) * this.cellSize;
-                    const wallCenterY = (checkY + 0.5) * this.cellSize;
+                    const wallLeft = checkX * this.cellSize;
+                    const wallRight = (checkX + 1) * this.cellSize;
+                    const wallTop = checkY * this.cellSize;
+                    const wallBottom = (checkY + 1) * this.cellSize;
                     
-                    // Simplified distance check - less accurate but much faster
-                    const distanceX = Math.abs(x - wallCenterX);
-                    const distanceY = Math.abs(y - wallCenterY);
+                    // Check if player circle intersects with wall rectangle
+                    const closestX = Math.max(wallLeft, Math.min(x, wallRight));
+                    const closestY = Math.max(wallTop, Math.min(y, wallBottom));
                     
-                    // Quick rectangular collision approximation
-                    if (distanceX < (this.cellSize / 2 + playerRadius * 0.8) && 
-                        distanceY < (this.cellSize / 2 + playerRadius * 0.8)) {
+                    const distanceX = x - closestX;
+                    const distanceY = y - closestY;
+                    const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+                    
+                    // Use slightly smaller collision radius to prevent getting stuck
+                    const effectiveRadius = playerRadius * 0.9;
+                    if (distanceSquared < (effectiveRadius * effectiveRadius)) {
                         return true;
-                    }
-                }
-            }
-        } else {
-            // Full collision detection for non-iOS devices (original method)
-            const playerRadius = this.playerSize;
-            
-            // Check each nearby cell that could contain a wall
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const checkX = cellX + dx;
-                    const checkY = cellY + dy;
-                    
-                    // Skip if outside maze bounds
-                    if (checkX < 0 || checkX >= this.mazeSize || 
-                        checkY < 0 || checkY >= this.mazeSize) {
-                        continue;
-                    }
-                    
-                    // If this is a wall cell, check for collision
-                    if (this.maze[checkY][checkX] === 1) {
-                        const wallLeft = checkX * this.cellSize;
-                        const wallRight = (checkX + 1) * this.cellSize;
-                        const wallTop = checkY * this.cellSize;
-                        const wallBottom = (checkY + 1) * this.cellSize;
-                        
-                        // Check if player circle intersects with wall rectangle
-                        const closestX = Math.max(wallLeft, Math.min(x, wallRight));
-                        const closestY = Math.max(wallTop, Math.min(y, wallBottom));
-                        
-                        const distanceX = x - closestX;
-                        const distanceY = y - closestY;
-                        const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-                        
-                        if (distanceSquared < (playerRadius * playerRadius)) {
-                            return true;
-                        }
                     }
                 }
             }
@@ -679,20 +646,9 @@ class MazeGame {
         // Update animation timing
         this.animationTime += deltaTime * 0.002;
 
-        // iOS-specific optimization: Less frequent wall collision checks
-        if (this.isIOS) {
-            // Only check if player is in wall every few frames to reduce CPU load
-            if (!this.lastWallCheck || performance.now() - this.lastWallCheck > 50) { // Check every 50ms instead of every frame
-                if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
-                    this.pushPlayerOutOfWall();
-                }
-                this.lastWallCheck = performance.now();
-            }
-        } else {
-            // Full collision check for non-iOS devices
-            if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
-                this.pushPlayerOutOfWall();
-            }
+        // Consistent collision checking for all devices - no rate limiting to prevent gaps
+        if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
+            this.pushPlayerOutOfWall();
         }
 
         // Calculate direction to target
@@ -704,14 +660,13 @@ class MazeGame {
         
         if (distance > 0.05) {
             // Limit maximum movement per frame to prevent jumping through walls
-            // iPhone-specific max move optimization for smoother movement
             let maxMovePerFrame;
             if (this.isIPhone) {
-                maxMovePerFrame = this.cellSize * 0.25; // Smaller moves on iPhone for smoother performance
+                maxMovePerFrame = this.cellSize * 0.2; // Even smaller moves on iPhone for safety
             } else if (this.isMobile) {
-                maxMovePerFrame = this.cellSize * 0.3; // Smaller max move on mobile for smoother movement
+                maxMovePerFrame = this.cellSize * 0.25; // Smaller max move on mobile
             } else {
-                maxMovePerFrame = this.cellSize * 0.4; // Desktop max move
+                maxMovePerFrame = this.cellSize * 0.3; // Desktop max move
             }
             
             // Calculate movement this frame - more responsive with device-specific multiplier
@@ -730,55 +685,54 @@ class MazeGame {
             let newX = this.playerPos.x + moveX;
             let newY = this.playerPos.y + moveY;
             
-            // iOS-specific simplified collision handling
-            if (this.isIOS) {
-                // Simplified collision checking - only test final position
-                if (!this.checkWallCollision(newX, newY)) {
-                    this.playerPos.x = newX;
-                    this.playerPos.y = newY;
-                } else {
-                    // Simple fallback: try moving only on one axis
-                    if (!this.checkWallCollision(newX, this.playerPos.y)) {
-                        this.playerPos.x = newX;
-                    } else if (!this.checkWallCollision(this.playerPos.x, newY)) {
-                        this.playerPos.y = newY;
-                    }
-                    // If both fail, don't move - simpler than complex sliding
-                }
+            // Improved collision handling - consistent for all platforms
+            // Check collision for both axes and handle them separately
+            const canMoveX = !this.checkWallCollision(newX, this.playerPos.y);
+            const canMoveY = !this.checkWallCollision(this.playerPos.x, newY);
+            const canMoveBoth = !this.checkWallCollision(newX, newY);
+            
+            // Determine final position based on collision results
+            if (canMoveBoth) {
+                // No collision, move normally
+                this.playerPos.x = newX;
+                this.playerPos.y = newY;
+            } else if (canMoveX && !canMoveY) {
+                // Can move horizontally but not vertically - slide along wall
+                this.playerPos.x = newX;
+                // Keep Y position, stop vertical movement
+                this.targetPos.y = this.playerPos.y;
+            } else if (canMoveY && !canMoveX) {
+                // Can move vertically but not horizontally - slide along wall
+                this.playerPos.y = newY;
+                // Keep X position, stop horizontal movement
+                this.targetPos.x = this.playerPos.x;
             } else {
-                // Full collision checking for non-iOS devices (original method)
-                // Check collision for both axes and handle them separately
-                const canMoveX = !this.checkWallCollision(newX, this.playerPos.y);
-                const canMoveY = !this.checkWallCollision(this.playerPos.x, newY);
-                const canMoveBoth = !this.checkWallCollision(newX, newY);
+                // Cannot move in either direction - try very small incremental movements
+                const incrementalSteps = 5;
+                let foundValidMove = false;
                 
-                // Determine final position based on collision results
-                if (canMoveBoth) {
-                    // No collision, move normally
-                    this.playerPos.x = newX;
-                    this.playerPos.y = newY;
-                } else if (canMoveX && !canMoveY) {
-                    // Can move horizontally but not vertically - slide along wall
-                    this.playerPos.x = newX;
-                    // Keep Y position, stop vertical movement
-                    this.targetPos.y = this.playerPos.y;
-                } else if (canMoveY && !canMoveX) {
-                    // Can move vertically but not horizontally - slide along wall
-                    this.playerPos.y = newY;
-                    // Keep X position, stop horizontal movement
-                    this.targetPos.x = this.playerPos.x;
-                } else {
-                    // Cannot move in either direction - try smaller movements
-                    const smallMoveX = moveX * 0.1;
-                    const smallMoveY = moveY * 0.1;
+                for (let i = 1; i <= incrementalSteps && !foundValidMove; i++) {
+                    const fraction = i / incrementalSteps;
+                    const smallMoveX = moveX * 0.1 * fraction;
+                    const smallMoveY = moveY * 0.1 * fraction;
                     
+                    // Try horizontal movement only
                     if (!this.checkWallCollision(this.playerPos.x + smallMoveX, this.playerPos.y)) {
                         this.playerPos.x += smallMoveX;
-                    } else if (!this.checkWallCollision(this.playerPos.x, this.playerPos.y + smallMoveY)) {
+                        foundValidMove = true;
+                    }
+                    // Try vertical movement only
+                    else if (!this.checkWallCollision(this.playerPos.x, this.playerPos.y + smallMoveY)) {
                         this.playerPos.y += smallMoveY;
-                    } else {
-                        // Completely blocked, stop movement
-                        this.targetPos = { ...this.playerPos };
+                        foundValidMove = true;
+                    }
+                }
+                
+                if (!foundValidMove) {
+                    // Completely blocked, stop movement and push out of wall if stuck
+                    this.targetPos = { ...this.playerPos };
+                    if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
+                        this.pushPlayerOutOfWall();
                     }
                 }
             }
@@ -789,7 +743,7 @@ class MazeGame {
         
         // Check collisions with obstacles
         this.checkObstacleCollisions();
-        
+                
         // Add new position to trail with timestamp
         const currentTime = performance.now();
         this.trail.push({
@@ -870,13 +824,13 @@ class MazeGame {
                     }
                     
                     // Stop player movement and trigger game over immediately
-                    this.isGameOver = true;
-                    this.canMove = false;
+                this.isGameOver = true;
+                this.canMove = false;
                     this.targetPos = { ...this.playerPos };
                     obstacle.active = false; // Deactivate after collision
                     
                     // Show game over screen immediately
-                    this.drawGameOverScreen();
+                this.drawGameOverScreen();
                     
                     return; // Exit early since collision occurred
                 }
@@ -1095,63 +1049,85 @@ class MazeGame {
     }
 
     pushPlayerOutOfWall() {
-        // iOS-specific simplified wall escape
-        if (this.isIOS) {
-            // Simplified approach for iOS: just push to nearest valid cell center
-            const currentCellX = Math.floor(this.playerPos.x / this.cellSize);
-            const currentCellY = Math.floor(this.playerPos.y / this.cellSize);
+        // Unified wall escape method for all platforms
+        const cellX = Math.floor(this.playerPos.x / this.cellSize);
+        const cellY = Math.floor(this.playerPos.y / this.cellSize);
+        
+        // Strategy 1: Try to move to nearest open cell center (closest safe position)
+        const directions = [
+            [0, 0],   // Current cell center
+            [0, 1], [1, 0], [0, -1], [-1, 0],  // Adjacent cells
+            [1, 1], [-1, -1], [1, -1], [-1, 1] // Diagonal cells
+        ];
+        
+        for (const [dx, dy] of directions) {
+            const testCellX = cellX + dx;
+            const testCellY = cellY + dy;
             
-            // Check 4 cardinal directions for nearest open cell
-            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-            
-            for (const [dx, dy] of directions) {
-                const testCellX = currentCellX + dx;
-                const testCellY = currentCellY + dy;
+            // Check if this cell is valid and open
+            if (testCellX >= 1 && testCellX < this.mazeSize - 1 &&
+                testCellY >= 1 && testCellY < this.mazeSize - 1 &&
+                this.maze[testCellY][testCellX] === 0) {
                 
-                if (testCellX >= 1 && testCellX < this.mazeSize - 1 &&
-                    testCellY >= 1 && testCellY < this.mazeSize - 1 &&
-                    this.maze[testCellY][testCellX] === 0) {
-                    
-                    // Move to center of this open cell
-                    this.playerPos.x = (testCellX + 0.5) * this.cellSize;
-                    this.playerPos.y = (testCellY + 0.5) * this.cellSize;
+                const newX = (testCellX + 0.5) * this.cellSize;
+                const newY = (testCellY + 0.5) * this.cellSize;
+                
+                // Verify this position is actually safe
+                if (!this.checkWallCollision(newX, newY)) {
+                    this.playerPos.x = newX;
+                    this.playerPos.y = newY;
                     this.targetPos = { ...this.playerPos };
                     return;
                 }
             }
-            
-            // If no adjacent cell is open, reset to start
-            this.resetPlayerPosition();
-        } else {
-            // Full search method for non-iOS devices
-            // Find the nearest valid position
-            const searchRadius = this.playerSize * 2;
-            const step = 2; // Small step size for searching
-            
-            // Try to find a nearby position that's not in a wall
-            for (let radius = step; radius <= searchRadius; radius += step) {
-                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
-                    const testX = this.playerPos.x + Math.cos(angle) * radius;
-                    const testY = this.playerPos.y + Math.sin(angle) * radius;
+        }
+        
+        // Strategy 2: If cell center approach fails, try radial search for nearest safe position
+        const searchRadius = this.cellSize * 2;
+        const step = 4; // Reasonable step size for searching
+        
+        for (let radius = step; radius <= searchRadius; radius += step) {
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+                const testX = this.playerPos.x + Math.cos(angle) * radius;
+                const testY = this.playerPos.y + Math.sin(angle) * radius;
+                
+                // Make sure the position is within bounds
+                const minBound = this.cellSize + this.playerSize;
+                const maxBound = (this.mazeSize - 1) * this.cellSize - this.playerSize;
+                
+                if (testX >= minBound && testX <= maxBound &&
+                    testY >= minBound && testY <= maxBound) {
                     
-                    // Make sure the position is within bounds
-                    if (testX > this.cellSize && testX < (this.mazeSize - 1) * this.cellSize &&
-                        testY > this.cellSize && testY < (this.mazeSize - 1) * this.cellSize) {
-                        
-                        if (!this.checkWallCollision(testX, testY)) {
-                            // Found a valid position, move player there
-                            this.playerPos.x = testX;
-                            this.playerPos.y = testY;
-                            this.targetPos = { ...this.playerPos };
-                            return;
-                        }
+                    if (!this.checkWallCollision(testX, testY)) {
+                        // Found a valid position, move player there
+                        this.playerPos.x = testX;
+                        this.playerPos.y = testY;
+                        this.targetPos = { ...this.playerPos };
+                        return;
                     }
                 }
             }
-            
-            // If no valid position found, reset to start position
-            this.resetPlayerPosition();
         }
+        
+        // Strategy 3: Emergency fallback - scan for any open cell systematically
+        for (let y = 1; y < this.mazeSize - 1; y++) {
+            for (let x = 1; x < this.mazeSize - 1; x++) {
+                if (this.maze[y][x] === 0) {
+                    const testX = (x + 0.5) * this.cellSize;
+                    const testY = (y + 0.5) * this.cellSize;
+                    
+                    if (!this.checkWallCollision(testX, testY)) {
+                        this.playerPos.x = testX;
+                        this.playerPos.y = testY;
+                        this.targetPos = { ...this.playerPos };
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // Strategy 4: Absolute last resort - reset to start position
+        this.resetPlayerPosition();
     }
 
     setupControls() {
@@ -1197,7 +1173,7 @@ class MazeGame {
             const pos = getCanvasPoint(e);
             
             // Calculate the target position with proper bounds checking
-            const padding = this.playerSize + 2; // Extra padding to prevent wall clipping
+            const padding = this.playerSize + 4; // Extra padding to prevent wall clipping
             const minBound = this.cellSize + padding;
             const maxBound = (this.mazeSize - 1) * this.cellSize - padding;
             
@@ -1208,23 +1184,35 @@ class MazeGame {
             targetX = Math.max(minBound, Math.min(targetX, maxBound));
             targetY = Math.max(minBound, Math.min(targetY, maxBound));
             
-            // iOS-specific optimization: reduce collision checking during movement
-            if (this.isIOS) {
-                // Only check collision every few move events to reduce lag
-                if (!this.lastMoveCheck || performance.now() - this.lastMoveCheck > 33) { // Check every 33ms (30fps rate)
-                    if (!this.checkWallCollision(targetX, targetY)) {
-                        this.targetPos = { x: targetX, y: targetY };
-                    }
-                    this.lastMoveCheck = performance.now();
-                } else {
-                    // Skip collision check, just set target (will be validated in updatePlayerPosition)
-                    this.targetPos = { x: targetX, y: targetY };
-                }
+            // Always check for collision before setting target - no rate limiting to prevent gaps
+            if (!this.checkWallCollision(targetX, targetY)) {
+                this.targetPos = { x: targetX, y: targetY };
             } else {
-                // Full collision check for non-iOS devices
-                if (!this.checkWallCollision(targetX, targetY)) {
-                    this.targetPos = { x: targetX, y: targetY };
+                // If direct path is blocked, try to find a nearby safe position
+                const searchRadius = this.playerSize * 2;
+                const steps = 8; // Try 8 directions around the target
+                let foundSafeTarget = false;
+                
+                for (let i = 0; i < steps && !foundSafeTarget; i++) {
+                    const angle = (i / steps) * Math.PI * 2;
+                    const offsetX = Math.cos(angle) * searchRadius;
+                    const offsetY = Math.sin(angle) * searchRadius;
+                    
+                    const altTargetX = targetX + offsetX;
+                    const altTargetY = targetY + offsetY;
+                    
+                    // Check bounds and collision for alternative target
+                    if (altTargetX >= minBound && altTargetX <= maxBound &&
+                        altTargetY >= minBound && altTargetY <= maxBound &&
+                        !this.checkWallCollision(altTargetX, altTargetY)) {
+                        
+                        this.targetPos = { x: altTargetX, y: altTargetY };
+                        foundSafeTarget = true;
+                    }
                 }
+                
+                // If no safe alternative found, keep current target (don't update it)
+                // This prevents the player from trying to move into walls
             }
         };
 
@@ -1345,7 +1333,7 @@ class MazeGame {
         this.collectionEffects.length = 0;
         this.explosionEffects.length = 0;
         this.trail.length = 0;
-        
+
         // Reset game state
         this.isGameComplete = false;
         this.isGameOver = false;
@@ -1735,7 +1723,7 @@ class MazeGame {
         this.ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
         this.ctx.shadowBlur = 20;
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.beginPath();
+            this.ctx.beginPath();
         this.ctx.arc(
             this.canvasOffset.x + this.playerPos.x,
             this.canvasOffset.y + this.playerPos.y,
@@ -1743,7 +1731,7 @@ class MazeGame {
             0,
             Math.PI * 2
         );
-        this.ctx.fill();
+            this.ctx.fill();
         
         // Final comprehensive canvas state reset
         this.ctx.shadowColor = 'transparent';
