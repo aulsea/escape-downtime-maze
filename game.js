@@ -14,19 +14,19 @@ class MazeGame {
         this.wallThickness = 2;
         this.playerSize = 10;
         
-        // Balanced movement speed - responsive but safe with robust collision detection
+        // Much faster movement speeds for responsive gameplay
         if (this.isIPhone) {
-            this.moveSpeed = 0.4; // Increased for better responsiveness
-            this.responsiveMultiplier = 1.8; // More responsive but controlled
+            this.moveSpeed = 0.7; // Significantly increased for smooth gameplay
+            this.responsiveMultiplier = 2.5; // Very responsive
         } else if (this.isTablet) {
-            this.moveSpeed = 0.45; // Increased for better responsiveness
-            this.responsiveMultiplier = 2.0; // More responsive
+            this.moveSpeed = 0.8; // Fast and smooth for tablets
+            this.responsiveMultiplier = 2.8; // Very responsive
         } else if (this.isMobile) {
-            this.moveSpeed = 0.45; // Increased for better responsiveness
-            this.responsiveMultiplier = 2.0; // More responsive
+            this.moveSpeed = 0.8; // Fast and smooth for mobile
+            this.responsiveMultiplier = 2.8; // Very responsive
         } else {
-            this.moveSpeed = 0.4; // Desktop speed - increased for better feel
-            this.responsiveMultiplier = 1.5; // Good responsiveness for desktop
+            this.moveSpeed = 0.6; // Good desktop speed
+            this.responsiveMultiplier = 2.2; // Very responsive for desktop
         }
         
         // Fixed icon sizes that don't change during zoom with iPhone optimizations
@@ -451,35 +451,53 @@ class MazeGame {
             }
         }
         
-        // Place obstacles only in non-critical areas
+        // Place obstacles only in very safe areas that don't block passages
         const obstacleTypes = ['downtime', 'dataloss', 'crash'];
-        const obstacleCount = Math.floor(Math.random() * 2) + 2; // Random 2 or 3 obstacles
+        const obstacleCount = Math.floor(Math.random() * 2) + 1; // Reduced to 1-2 obstacles
         
         let obstaclesPlaced = 0;
         let obstacleAttempts = 0;
-        const maxObstacleAttempts = 150;
+        const maxObstacleAttempts = 200;
         
         while (obstaclesPlaced < obstacleCount && obstacleAttempts < maxObstacleAttempts) {
-            const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
-            const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
+            const x = Math.floor(Math.random() * (this.mazeSize - 4)) + 2; // More conservative bounds
+            const y = Math.floor(Math.random() * (this.mazeSize - 4)) + 2;
             
-            // Check if position is valid and safe for obstacle placement
+            // Much more strict checking for obstacle placement
             if (this.maze[y][x] === 0 && 
-                this.getDistance(x, y, 1, 1) > 3 && // Not too close to start
+                this.getDistance(x, y, 1, 1) > 4 && // Further from start
+                this.getDistance(x, y, this.mazeSize-2, this.mazeSize-2) > 3 && // Not too close to typical end area
                 !this.isOnCriticalPath(x, y) && // Never place on critical path
-                !this.isPositionOccupied(x, y, 2.0)) { // Minimum 2 cell spacing from other items
+                !this.isPositionOccupied(x, y, 3.0) && // Larger spacing from other items
+                this.hasMultiplePathsAround(x, y) && // Ensure multiple paths around this position
+                !this.wouldCreateChokePoint(x, y)) { // Don't create chokepoints
                 
-                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-                this.obstacles.push({
-                    x: x * this.cellSize + this.cellSize / 2,
-                    y: y * this.cellSize + this.cellSize / 2,
-                    type: type,
-                    active: true,
-                    animationOffset: Math.random() * Math.PI * 2,
-                    gridX: x, // Store grid position for collision checking
+                // Final check: temporarily place obstacle and verify connectivity
+                const tempObstacle = {
+                    gridX: x,
                     gridY: y
-                });
-                obstaclesPlaced++;
+                };
+                this.obstacles.push(tempObstacle);
+                
+                // Check if all critical areas are still reachable
+                if (this.verifyConnectivityWithObstacles()) {
+                    // Safe to place - replace temp with real obstacle
+                    this.obstacles.pop();
+                    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                    this.obstacles.push({
+                        x: x * this.cellSize + this.cellSize / 2,
+                        y: y * this.cellSize + this.cellSize / 2,
+                        type: type,
+                        active: true,
+                        animationOffset: Math.random() * Math.PI * 2,
+                        gridX: x,
+                        gridY: y
+                    });
+                    obstaclesPlaced++;
+                } else {
+                    // Remove temp obstacle - it would block passage
+                    this.obstacles.pop();
+                }
             }
             obstacleAttempts++;
         }
@@ -690,14 +708,14 @@ class MazeGame {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0.05) { // Reduced threshold for more responsive movement
-            // Balanced maximum movement per frame - responsive but safe
+            // Much higher maximum movement per frame for smooth gameplay
             let maxMovePerFrame;
             if (this.isIPhone) {
-                maxMovePerFrame = this.cellSize * 0.25; // Increased for better responsiveness
+                maxMovePerFrame = this.cellSize * 0.4; // Much faster movement
             } else if (this.isMobile) {
-                maxMovePerFrame = this.cellSize * 0.3; // Increased for smoother movement
+                maxMovePerFrame = this.cellSize * 0.45; // Very smooth movement
             } else {
-                maxMovePerFrame = this.cellSize * 0.35; // Good desktop movement
+                maxMovePerFrame = this.cellSize * 0.5; // Fast desktop movement
             }
             
             // Calculate movement this frame with reduced responsiveness
@@ -2483,6 +2501,42 @@ class MazeGame {
         
         // If no safe alternative found, keep current target (don't update it)
         // This prevents the player from trying to move into walls
+    }
+
+    hasMultiplePathsAround(x, y) {
+        // Check if there are multiple paths around this position
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        let paths = 0;
+        for (const [dx, dy] of directions) {
+            if (this.maze[y + dy] && this.maze[y + dy][x + dx] === 0) {
+                paths++;
+            }
+        }
+        return paths >= 2;
+    }
+
+    wouldCreateChokePoint(x, y) {
+        // Check if placing an obstacle here would create a choke point
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        let blocked = 0;
+        for (const [dx, dy] of directions) {
+            if (this.maze[y + dy] && this.maze[y + dy][x + dx] === 1) {
+                blocked++;
+            }
+        }
+        return blocked >= 3;
+    }
+
+    verifyConnectivityWithObstacles() {
+        // Check if all critical areas are still reachable
+        const criticalCells = this.findCriticalPathCells();
+        for (const cell of criticalCells) {
+            const [x, y] = cell.split(',').map(Number);
+            if (this.maze[y][x] === 1) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
