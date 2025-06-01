@@ -290,9 +290,20 @@ class MazeGame {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0.1) {
+            // Limit maximum movement per frame to prevent jumping through walls
+            const maxMovePerFrame = this.cellSize * 0.3; // Maximum movement per frame
+            
             // Calculate movement this frame
-            const moveX = dx * this.moveSpeed;
-            const moveY = dy * this.moveSpeed;
+            let moveX = dx * this.moveSpeed;
+            let moveY = dy * this.moveSpeed;
+            
+            // Cap the movement if it's too large
+            const moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
+            if (moveDistance > maxMovePerFrame) {
+                const ratio = maxMovePerFrame / moveDistance;
+                moveX *= ratio;
+                moveY *= ratio;
+            }
             
             // Calculate new position
             let newX = this.playerPos.x + moveX;
