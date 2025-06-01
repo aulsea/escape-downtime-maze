@@ -6,12 +6,29 @@ class MazeGame {
         // Mobile detection and performance optimization
         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        this.isTablet = /(iPad|Android(?=.*Tablet)|Windows Phone|webOS)/i.test(navigator.userAgent) || (window.innerWidth >= 768 && window.innerWidth <= 1024);
         
         this.mazeSize = 16;
         this.cellSize = 46;
         this.wallThickness = 2;
         this.playerSize = 10;
-        this.moveSpeed = 0.35;
+        
+        // Improved movement speed based on device type
+        if (this.isTablet) {
+            this.moveSpeed = 0.45; // Faster for tablets/iPad
+            this.responsiveMultiplier = 2.0; // Much more responsive on tablets
+        } else if (this.isMobile) {
+            this.moveSpeed = 0.4; // Faster for phones
+            this.responsiveMultiplier = 1.8;
+        } else {
+            this.moveSpeed = 0.35; // Desktop speed
+            this.responsiveMultiplier = 1.5;
+        }
+        
+        // Fixed icon sizes that don't change during zoom
+        this.fixedBonusIconSize = this.isTablet ? 14 : (this.isMobile ? 12 : 12);
+        this.fixedObstacleIconSize = this.isTablet ? 12 : (this.isMobile ? 10 : 10);
+        
         this.targetPos = { x: 0, y: 0 };
         this.trail = [];
         
@@ -38,7 +55,15 @@ class MazeGame {
         // Animation frame management
         this.animationFrame = null;
         this.lastAnimationTime = 0;
-        this.animationThrottle = this.isMobile ? 33 : 16; // 30fps on mobile, 60fps on desktop
+        
+        // Improved animation throttle for different devices
+        if (this.isTablet) {
+            this.animationThrottle = 20; // 50fps on tablets for better responsiveness
+        } else if (this.isMobile) {
+            this.animationThrottle = 33; // 30fps on mobile phones
+        } else {
+            this.animationThrottle = 16; // 60fps on desktop
+        }
         
         // New maze elements
         this.bonusItems = []; 
@@ -112,96 +137,86 @@ class MazeGame {
     setupCanvasSize() {
         const container = document.getElementById('maze-container');
         
+        // Get viewport dimensions and detect zoom level
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        
         // Get computed CSS custom properties for scaling
         const computedStyle = getComputedStyle(document.documentElement);
         const deviceScale = parseFloat(computedStyle.getPropertyValue('--device-scale')) || 1;
-        const spacingScale = parseFloat(computedStyle.getPropertyValue('--spacing-scale')) || 1;
         
-        // Calculate available space for the game
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // Determine container size based on device type and available space
-        let containerSize;
+        // Calculate base container size with conservative approach
+        let baseSize;
         if (viewportWidth < 768) {
-            // Phone: Use 60% of viewport height or 80% of width, whichever is smaller
-            containerSize = Math.min(viewportHeight * 0.6, viewportWidth * 0.8);
-            this.cellSize = Math.max(18, Math.floor(containerSize / this.mazeSize));
-            this.wallThickness = 2;
-            this.playerSize = Math.max(6, Math.floor(this.cellSize * 0.25));
+            // Phone: Use smaller percentage to prevent overflow
+            baseSize = Math.min(viewportHeight * 0.5, viewportWidth * 0.75);
         } else if (viewportWidth <= 1024) {
-            // Tablet: Use 65% of both dimensions
-            containerSize = Math.min(viewportHeight * 0.65, viewportWidth * 0.7);
-            this.cellSize = Math.max(22, Math.floor(containerSize / this.mazeSize));
-            this.wallThickness = 3;
-            this.playerSize = Math.max(8, Math.floor(this.cellSize * 0.2));
+            // Tablet: Conservative sizing
+            baseSize = Math.min(viewportHeight * 0.55, viewportWidth * 0.65);
         } else {
-            // Desktop: Use 70% of height or 60% of width
-            containerSize = Math.min(viewportHeight * 0.7, viewportWidth * 0.6);
-            this.cellSize = Math.max(26, Math.floor(containerSize / this.mazeSize));
-            this.wallThickness = 3;
-            this.playerSize = Math.max(10, Math.floor(this.cellSize * 0.18));
+            // Desktop: Conservative sizing
+            baseSize = Math.min(viewportHeight * 0.6, viewportWidth * 0.55);
         }
-
-        // Ensure minimum viable game size
-        containerSize = Math.max(320, containerSize);
         
-        // Apply scaling factor
-        containerSize *= deviceScale;
+        // Apply device scale but keep it conservative
+        const finalContainerSize = Math.max(280, baseSize * deviceScale);
         
-        // Update container styling
-        container.style.width = containerSize + 'px';
-        container.style.height = containerSize + 'px';
-
-        // Calculate the total maze size including padding
-        const padding = Math.floor(this.wallThickness * 2 * spacingScale);
-        const totalMazeSize = (this.mazeSize * this.cellSize) + padding;
+        // Set container size explicitly in pixels
+        container.style.width = finalContainerSize + 'px';
+        container.style.height = finalContainerSize + 'px';
         
-        // Set canvas size to exactly fit the container
-        this.canvas.width = totalMazeSize;
-        this.canvas.height = totalMazeSize;
+        // Calculate game elements size based on container
+        const availableSize = finalContainerSize - 20; // Leave padding
+        this.cellSize = Math.max(16, Math.floor(availableSize / this.mazeSize));
         
-        // Remove any transforms to prevent zoom issues
+        // Set element sizes based on cell size
+        if (viewportWidth < 768) {
+            this.wallThickness = 2;
+            this.playerSize = Math.max(5, Math.floor(this.cellSize * 0.22));
+        } else if (viewportWidth <= 1024) {
+            this.wallThickness = 2;
+            this.playerSize = Math.max(7, Math.floor(this.cellSize * 0.18));
+        } else {
+            this.wallThickness = 3;
+            this.playerSize = Math.max(8, Math.floor(this.cellSize * 0.16));
+        }
+        
+        // Calculate actual game area size
+        const gameAreaSize = this.mazeSize * this.cellSize;
+        const totalCanvasSize = gameAreaSize + (this.wallThickness * 4);
+        
+        // Set canvas dimensions to exact pixel values
+        this.canvas.width = totalCanvasSize;
+        this.canvas.height = totalCanvasSize;
+        
+        // Remove any existing transforms that might interfere
         this.canvas.style.transform = 'none';
         this.canvas.style.transformOrigin = 'center center';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
+        this.canvas.style.maxWidth = '100%';
+        this.canvas.style.maxHeight = '100%';
+        this.canvas.style.objectFit = 'contain';
         
-        // Ensure canvas fits within container
-        if (totalMazeSize > containerSize - 10) {
-            const scale = (containerSize - 10) / totalMazeSize;
-            this.canvas.style.transform = `scale(${scale})`;
-            this.canvasScale = scale;
-        } else {
-            this.canvasScale = 1;
-        }
-        
-        // Center the maze in the canvas with proper offset
+        // Set canvas offset for centering the maze
         this.canvasOffset = {
-            x: this.wallThickness,
-            y: this.wallThickness
-        };
-
-        // Update positions with new cell size
-        this.startPosition = {
-            x: this.cellSize * 1.5,
-            y: this.cellSize * 1.5
+            x: this.wallThickness * 2,
+            y: this.wallThickness * 2
         };
         
-        // Scale UI elements based on device type
-        this.buttonScale = deviceScale;
+        // Store the canvas scale for coordinate calculations
+        this.canvasScale = finalContainerSize / totalCanvasSize;
         
-        // Reset player position if game is active
-        if (this.playerPos) {
-            this.resetPlayerPosition();
-        }
-        
-        // Update end position if it exists
-        if (this.endPos) {
-            this.generateRandomEndPosition();
-        }
-        
-        // Regenerate maze elements with new sizes
-        if (this.gameStarted) {
-            this.generateMazeElements();
+        // Update game positions only if this is initial setup
+        if (!this.gameStarted) {
+            this.startPosition = {
+                x: this.cellSize * 1.5,
+                y: this.cellSize * 1.5
+            };
+            
+            this.playerPos = { ...this.startPosition };
+            this.targetPos = { ...this.startPosition };
         }
     }
 
@@ -343,7 +358,10 @@ class MazeGame {
         const bonusCount = Math.floor(this.mazeSize * 0.15);
         
         let bonusPlaced = 0;
-        while (bonusPlaced < bonusCount) {
+        let attempts = 0;
+        const maxAttempts = 200; // Increased attempts for better placement
+        
+        while (bonusPlaced < bonusCount && attempts < maxAttempts) {
             const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             
@@ -351,7 +369,8 @@ class MazeGame {
             if (this.maze[y][x] === 0 && 
                 this.getDistance(x, y, 1, 1) > 2 && // Not near start
                 !this.isOnCriticalPath(x, y) && // Not on critical path
-                !this.isOnPath(x, y)) { // Not on special paths
+                !this.isOnPath(x, y) && // Not on special paths
+                !this.isPositionOccupied(x, y, 1.5)) { // Not too close to existing items
                 
                 const type = bonusTypes[bonusPlaced % bonusTypes.length];
                 this.bonusItems.push({
@@ -370,10 +389,10 @@ class MazeGame {
         const obstacleCount = Math.floor(Math.random() * 2) + 2; // Random 2 or 3 obstacles
         
         let obstaclesPlaced = 0;
-        let attempts = 0;
-        const maxAttempts = 100; // Reduced since we need fewer obstacles
+        let obstacleAttempts = 0;
+        const maxObstacleAttempts = 150;
         
-        while (obstaclesPlaced < obstacleCount && attempts < maxAttempts) {
+        while (obstaclesPlaced < obstacleCount && obstacleAttempts < maxObstacleAttempts) {
             const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             const y = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
             
@@ -381,8 +400,7 @@ class MazeGame {
             if (this.maze[y][x] === 0 && 
                 this.getDistance(x, y, 1, 1) > 3 && // Not too close to start
                 !this.isOnCriticalPath(x, y) && // Never place on critical path
-                !this.isObstacleNearby(x, y) && // Not too close to other obstacles
-                !this.isBonusItemNearby(x, y)) { // Not too close to bonus items
+                !this.isPositionOccupied(x, y, 2.0)) { // Minimum 2 cell spacing from other items
                 
                 const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
                 this.obstacles.push({
@@ -390,11 +408,13 @@ class MazeGame {
                     y: y * this.cellSize + this.cellSize / 2,
                     type: type,
                     active: true,
-                    animationOffset: Math.random() * Math.PI * 2
+                    animationOffset: Math.random() * Math.PI * 2,
+                    gridX: x, // Store grid position for collision checking
+                    gridY: y
                 });
                 obstaclesPlaced++;
             }
-            attempts++;
+            obstacleAttempts++;
         }
         
         // Add some bonus items on the safe path for guaranteed collection opportunities
@@ -573,9 +593,9 @@ class MazeGame {
             // Limit maximum movement per frame to prevent jumping through walls
             const maxMovePerFrame = this.cellSize * 0.4; // Increased from 0.25 to allow faster movement
             
-            // Calculate movement this frame - more responsive
-            let moveX = dx * this.moveSpeed * 1.5; // Multiply by 1.5 for extra responsiveness
-            let moveY = dy * this.moveSpeed * 1.5;
+            // Calculate movement this frame - more responsive with device-specific multiplier
+            let moveX = dx * this.moveSpeed * this.responsiveMultiplier;
+            let moveY = dy * this.moveSpeed * this.responsiveMultiplier;
             
             // Cap the movement if it's too large
             const moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
@@ -1653,7 +1673,7 @@ class MazeGame {
     }
 
     drawBonusIcon(type) {
-        const size = 12;
+        const size = this.fixedBonusIconSize;
         this.ctx.fillStyle = this.getBonusColor(type);
         
         switch (type) {
@@ -1726,7 +1746,7 @@ class MazeGame {
     }
 
     drawObstacleIcon(type) {
-        const size = 10;
+        const size = this.fixedObstacleIconSize;
         this.ctx.fillStyle = this.getObstacleColor(type);
         
         switch (type) {
@@ -1857,28 +1877,37 @@ class MazeGame {
         }, 30000); // 30 seconds
     }
 
-    isObstacleNearby(x, y) {
-        // Check if there's already an obstacle within 2 cells
-        for (let obstacle of this.obstacles) {
-            const obstacleX = Math.floor((obstacle.x - this.cellSize / 2) / this.cellSize);
-            const obstacleY = Math.floor((obstacle.y - this.cellSize / 2) / this.cellSize);
-            if (this.getDistance(x, y, obstacleX, obstacleY) < 2) {
+    isPositionOccupied(x, y, minDistance) {
+        // Check if there's already a bonus item within the minimum distance
+        for (let item of this.bonusItems) {
+            const itemGridX = item.gridX || Math.floor((item.x - this.cellSize / 2) / this.cellSize);
+            const itemGridY = item.gridY || Math.floor((item.y - this.cellSize / 2) / this.cellSize);
+            
+            if (this.getDistance(x, y, itemGridX, itemGridY) < minDistance) {
                 return true;
             }
         }
+        
+        // Check if there's already an obstacle within the minimum distance
+        for (let obstacle of this.obstacles) {
+            const obstacleGridX = obstacle.gridX || Math.floor((obstacle.x - this.cellSize / 2) / this.cellSize);
+            const obstacleGridY = obstacle.gridY || Math.floor((obstacle.y - this.cellSize / 2) / this.cellSize);
+            
+            if (this.getDistance(x, y, obstacleGridX, obstacleGridY) < minDistance) {
+                return true;
+            }
+        }
+        
         return false;
     }
 
+    // Keep these methods for backward compatibility but make them use the new method
+    isObstacleNearby(x, y) {
+        return this.isPositionOccupied(x, y, 2.0);
+    }
+
     isBonusItemNearby(x, y) {
-        // Check if there's already a bonus item within 2 cells
-        for (let item of this.bonusItems) {
-            const itemX = Math.floor((item.x - this.cellSize / 2) / this.cellSize);
-            const itemY = Math.floor((item.y - this.cellSize / 2) / this.cellSize);
-            if (this.getDistance(x, y, itemX, itemY) < 2) {
-                return true;
-            }
-        }
-        return false;
+        return this.isPositionOccupied(x, y, 1.5);
     }
 
     generateRandomEndPosition() {
@@ -1914,41 +1943,103 @@ class MazeGame {
         // Debounce resize events to prevent excessive calls
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
-            // Store previous positions before resize
+            // Store current game state before resize
             const wasGameStarted = this.gameStarted;
-            const prevPlayerPos = { ...this.playerPos };
-            const prevEndPos = this.endPos ? { ...this.endPos } : null;
+            const oldGameAreaSize = this.mazeSize * this.cellSize;
             
-            // Update canvas size with new viewport dimensions
+            // Store relative positions before resize
+            let relativePlayerPos = null;
+            let relativeEndPos = null;
+            let relativeBonusItems = [];
+            let relativeObstacles = [];
+            let relativeTrail = [];
+            
+            if (wasGameStarted && oldGameAreaSize > 0) {
+                // Calculate relative positions (0-1 scale)
+                if (this.playerPos) {
+                    relativePlayerPos = {
+                        x: this.playerPos.x / oldGameAreaSize,
+                        y: this.playerPos.y / oldGameAreaSize
+                    };
+                }
+                
+                if (this.endPos) {
+                    relativeEndPos = {
+                        x: this.endPos.x / oldGameAreaSize,
+                        y: this.endPos.y / oldGameAreaSize
+                    };
+                }
+                
+                if (this.bonusItems) {
+                    relativeBonusItems = this.bonusItems.map(item => ({
+                        ...item,
+                        x: item.x / oldGameAreaSize,
+                        y: item.y / oldGameAreaSize
+                    }));
+                }
+                
+                if (this.obstacles) {
+                    relativeObstacles = this.obstacles.map(obstacle => ({
+                        ...obstacle,
+                        x: obstacle.x / oldGameAreaSize,
+                        y: obstacle.y / oldGameAreaSize
+                    }));
+                }
+                
+                if (this.trail && this.trail.length > 0) {
+                    relativeTrail = this.trail.map(pos => ({
+                        x: pos.x / oldGameAreaSize,
+                        y: pos.y / oldGameAreaSize,
+                        timestamp: pos.timestamp
+                    }));
+                }
+            }
+            
+            // Update canvas size - this calculates new cellSize and gameAreaSize
             this.setupCanvasSize();
             
-            // If game was started, maintain relative positions
-            if (wasGameStarted && prevPlayerPos) {
-                // Calculate relative position (0-1 scale)
-                const relativeX = prevPlayerPos.x / (this.mazeSize * this.cellSize);
-                const relativeY = prevPlayerPos.y / (this.mazeSize * this.cellSize);
-                
-                // Update player position with new cell size
-                this.playerPos.x = relativeX * (this.mazeSize * this.cellSize);
-                this.playerPos.y = relativeY * (this.mazeSize * this.cellSize);
+            // Restore positions using new game area size
+            const newGameAreaSize = this.mazeSize * this.cellSize;
+            
+            if (wasGameStarted && relativePlayerPos) {
+                this.playerPos.x = relativePlayerPos.x * newGameAreaSize;
+                this.playerPos.y = relativePlayerPos.y * newGameAreaSize;
                 this.targetPos = { ...this.playerPos };
-                
-                // Update trail positions
-                this.trail = this.trail.map(pos => ({
-                    x: (pos.x / (this.mazeSize * this.cellSize)) * (this.mazeSize * this.cellSize),
-                    y: (pos.y / (this.mazeSize * this.cellSize)) * (this.mazeSize * this.cellSize)
+            }
+            
+            if (wasGameStarted && relativeEndPos) {
+                this.endPos.x = relativeEndPos.x * newGameAreaSize;
+                this.endPos.y = relativeEndPos.y * newGameAreaSize;
+            }
+            
+            if (wasGameStarted && relativeBonusItems.length > 0) {
+                this.bonusItems = relativeBonusItems.map(item => ({
+                    ...item,
+                    x: item.x * newGameAreaSize,
+                    y: item.y * newGameAreaSize
                 }));
             }
             
-            // Redraw the maze with new dimensions
+            if (wasGameStarted && relativeObstacles.length > 0) {
+                this.obstacles = relativeObstacles.map(obstacle => ({
+                    ...obstacle,
+                    x: obstacle.x * newGameAreaSize,
+                    y: obstacle.y * newGameAreaSize
+                }));
+            }
+            
+            if (wasGameStarted && relativeTrail.length > 0) {
+                this.trail = relativeTrail.map(pos => ({
+                    x: pos.x * newGameAreaSize,
+                    y: pos.y * newGameAreaSize,
+                    timestamp: pos.timestamp
+                }));
+            }
+            
+            // Force immediate redraw
             this.drawMaze();
             
-            // Force a repaint
-            if (this.animationFrame) {
-                cancelAnimationFrame(this.animationFrame);
-                this.animationFrame = requestAnimationFrame((time) => this.animate(time));
-            }
-        }, 200); // Reduced debounce time for more responsive scaling
+        }, 100); // Reduced debounce time for more responsive scaling
     }
 }
 
