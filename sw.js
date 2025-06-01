@@ -1,11 +1,10 @@
-const CACHE_NAME = 'zephyrus-challenge-offline-v3';
+const CACHE_NAME = 'zephyrus-challenge-offline-v4';
 const urlsToCache = [
   './',
   './index.html',
   './game.js',
   './manifest.json',
-  './zephyrus-icon.svg',
-  './qr-code-simple.svg'
+  './zephyrus-icon.svg'
 ];
 
 // Install event - cache all resources
