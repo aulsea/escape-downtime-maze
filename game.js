@@ -15,11 +15,11 @@ class MazeGame {
         
         // Improved movement speed based on device type
         if (this.isTablet) {
-            this.moveSpeed = 0.45; // Faster for tablets/iPad
-            this.responsiveMultiplier = 2.0; // Much more responsive on tablets
+            this.moveSpeed = 0.5; // Faster for tablets/iPad
+            this.responsiveMultiplier = 2.5; // Very responsive on tablets
         } else if (this.isMobile) {
-            this.moveSpeed = 0.4; // Faster for phones
-            this.responsiveMultiplier = 1.8;
+            this.moveSpeed = 0.5; // Faster for phones
+            this.responsiveMultiplier = 2.5; // Very responsive on mobile
         } else {
             this.moveSpeed = 0.35; // Desktop speed
             this.responsiveMultiplier = 1.5;
@@ -33,9 +33,9 @@ class MazeGame {
         this.trail = [];
         
         // Performance optimizations for mobile
-        this.maxTrailLength = this.isMobile ? 15 : 35; // Reduced trail for mobile
-        this.trailDuration = this.isMobile ? 600 : 1000; // Faster trail decay on mobile
-        this.trailSegmentSpacing = this.isMobile ? 10 : 6; // Fewer trail segments
+        this.maxTrailLength = this.isMobile ? 10 : 35; // Even shorter trail for mobile performance
+        this.trailDuration = this.isMobile ? 400 : 1000; // Much faster trail decay on mobile
+        this.trailSegmentSpacing = this.isMobile ? 15 : 6; // Much fewer trail segments for mobile
         
         this.trailColors = {
             primary: { r: 255, g: 255, b: 255 },
@@ -58,9 +58,9 @@ class MazeGame {
         
         // Improved animation throttle for different devices
         if (this.isTablet) {
-            this.animationThrottle = 20; // 50fps on tablets for better responsiveness
+            this.animationThrottle = 16; // 60fps on tablets for smooth movement
         } else if (this.isMobile) {
-            this.animationThrottle = 33; // 30fps on mobile phones
+            this.animationThrottle = 16; // 60fps on mobile phones for smooth movement
         } else {
             this.animationThrottle = 16; // 60fps on desktop
         }
@@ -149,26 +149,36 @@ class MazeGame {
         // Calculate base container size with conservative approach
         let baseSize;
         if (viewportWidth < 768) {
-            // Phone: Use smaller percentage to prevent overflow
-            baseSize = Math.min(viewportHeight * 0.5, viewportWidth * 0.75);
+            // Phone: Use larger percentage for bigger maze
+            baseSize = Math.min(viewportHeight * 0.65, viewportWidth * 0.85);
         } else if (viewportWidth <= 1024) {
-            // Tablet: Conservative sizing
-            baseSize = Math.min(viewportHeight * 0.55, viewportWidth * 0.65);
+            // Tablet: Use larger percentage for bigger maze
+            baseSize = Math.min(viewportHeight * 0.75, viewportWidth * 0.80);
         } else {
             // Desktop: Conservative sizing
             baseSize = Math.min(viewportHeight * 0.6, viewportWidth * 0.55);
         }
         
         // Apply device scale but keep it conservative
-        const finalContainerSize = Math.max(280, baseSize * deviceScale);
+        const finalContainerSize = Math.max(320, baseSize * deviceScale);
         
         // Set container size explicitly in pixels
         container.style.width = finalContainerSize + 'px';
         container.style.height = finalContainerSize + 'px';
         
-        // Calculate game elements size based on container
+        // Calculate game elements size based on container with larger cells for mobile
         const availableSize = finalContainerSize - 20; // Leave padding
-        this.cellSize = Math.max(16, Math.floor(availableSize / this.mazeSize));
+        
+        if (viewportWidth < 768) {
+            // Phone: Larger cell size for better visibility
+            this.cellSize = Math.max(22, Math.floor(availableSize / this.mazeSize));
+        } else if (viewportWidth <= 1024) {
+            // Tablet: Larger cell size for better visibility  
+            this.cellSize = Math.max(26, Math.floor(availableSize / this.mazeSize));
+        } else {
+            // Desktop: Standard size
+            this.cellSize = Math.max(20, Math.floor(availableSize / this.mazeSize));
+        }
         
         // Set element sizes based on cell size
         if (viewportWidth < 768) {
@@ -350,7 +360,10 @@ class MazeGame {
         this.obstacles = [];
         this.collectedItems = [];
         
-        // First, find all critical path cells that must remain obstacle-free
+        // First, ensure we have a valid end position that's reachable
+        this.generateRandomEndPosition();
+        
+        // Find all critical path cells that must remain obstacle-free
         this.criticalPathCells = this.findCriticalPathCells();
         
         // Generate bonus items in random open spaces (not on paths)
@@ -359,7 +372,7 @@ class MazeGame {
         
         let bonusPlaced = 0;
         let attempts = 0;
-        const maxAttempts = 200; // Increased attempts for better placement
+        const maxAttempts = 200;
         
         while (bonusPlaced < bonusCount && attempts < maxAttempts) {
             const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
@@ -591,7 +604,8 @@ class MazeGame {
         
         if (distance > 0.05) {
             // Limit maximum movement per frame to prevent jumping through walls
-            const maxMovePerFrame = this.cellSize * 0.4; // Increased from 0.25 to allow faster movement
+            // Smaller max move on mobile for smoother movement
+            const maxMovePerFrame = this.isMobile ? this.cellSize * 0.3 : this.cellSize * 0.4;
             
             // Calculate movement this frame - more responsive with device-specific multiplier
             let moveX = dx * this.moveSpeed * this.responsiveMultiplier;
@@ -1798,7 +1812,7 @@ class MazeGame {
     animate(currentTime) {
         // Throttle animation frame rate for mobile performance
         if (currentTime - this.lastAnimationTime < this.animationThrottle) {
-            requestAnimationFrame((time) => this.animate(time));
+            this.animationFrame = requestAnimationFrame((time) => this.animate(time));
             return;
         }
         
@@ -2041,6 +2055,30 @@ class MazeGame {
             
         }, 100); // Reduced debounce time for more responsive scaling
     }
+
+    wouldBlockPath(x, y) {
+        // Temporarily place a wall at this position and check if path still exists
+        const originalValue = this.maze[y][x];
+        this.maze[y][x] = 1; // Temporarily block
+        
+        const startX = 1;
+        const startY = 1;
+        const endX = Math.floor(this.endPos.x / this.cellSize);
+        const endY = Math.floor(this.endPos.y / this.cellSize);
+        
+        const pathExists = this.canReachDestination(startX, startY, endX, endY);
+        
+        // Restore original value
+        this.maze[y][x] = originalValue;
+        
+        return !pathExists; // Return true if placing item would block path
+    }
+
+    hasAlternativePath(x, y) {
+        // Check if there are multiple paths around this position
+        // This ensures we don't place obstacles on narrow corridors
+        
+        const adjacentPaths = [];
 }
 
 // Start the game when the page loads
