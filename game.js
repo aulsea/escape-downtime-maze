@@ -282,6 +282,11 @@ class MazeGame {
         // Don't update position if movement is disabled
         if (!this.canMove || !this.gameStarted || this.isGameComplete || this.isGameOver) return;
 
+        // First, check if player is currently in a wall and push them out
+        if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
+            this.pushPlayerOutOfWall();
+        }
+
         // Calculate direction to target
         const dx = this.targetPos.x - this.playerPos.x;
         const dy = this.targetPos.y - this.playerPos.y;
@@ -291,7 +296,7 @@ class MazeGame {
         
         if (distance > 0.1) {
             // Limit maximum movement per frame to prevent jumping through walls
-            const maxMovePerFrame = this.cellSize * 0.3; // Maximum movement per frame
+            const maxMovePerFrame = this.cellSize * 0.25; // Reduced for better collision detection
             
             // Calculate movement this frame
             let moveX = dx * this.moveSpeed;
@@ -330,8 +335,18 @@ class MazeGame {
                 // Keep X position, stop horizontal movement
                 this.targetPos.x = this.playerPos.x;
             } else {
-                // Cannot move in either direction - completely blocked
-                this.targetPos = { ...this.playerPos };
+                // Cannot move in either direction - try smaller movements
+                const smallMoveX = moveX * 0.1; // Much smaller movement
+                const smallMoveY = moveY * 0.1;
+                
+                if (!this.checkWallCollision(this.playerPos.x + smallMoveX, this.playerPos.y)) {
+                    this.playerPos.x += smallMoveX;
+                } else if (!this.checkWallCollision(this.playerPos.x, this.playerPos.y + smallMoveY)) {
+                    this.playerPos.y += smallMoveY;
+                } else {
+                    // Completely blocked, stop movement
+                    this.targetPos = { ...this.playerPos };
+                }
             }
             
             // Add new position to trail with timestamp
@@ -361,6 +376,36 @@ class MazeGame {
                 this.showSuccessModal();
             }
         }
+    }
+
+    pushPlayerOutOfWall() {
+        // Find the nearest valid position
+        const searchRadius = this.playerSize * 2;
+        const step = 2; // Small step size for searching
+        
+        // Try to find a nearby position that's not in a wall
+        for (let radius = step; radius <= searchRadius; radius += step) {
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+                const testX = this.playerPos.x + Math.cos(angle) * radius;
+                const testY = this.playerPos.y + Math.sin(angle) * radius;
+                
+                // Make sure the position is within bounds
+                if (testX > this.cellSize && testX < (this.mazeSize - 1) * this.cellSize &&
+                    testY > this.cellSize && testY < (this.mazeSize - 1) * this.cellSize) {
+                    
+                    if (!this.checkWallCollision(testX, testY)) {
+                        // Found a valid position, move player there
+                        this.playerPos.x = testX;
+                        this.playerPos.y = testY;
+                        this.targetPos = { ...this.playerPos };
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // If no valid position found, reset to start position
+        this.resetPlayerPosition();
     }
 
     setupControls() {
@@ -949,13 +994,13 @@ class MazeGame {
         this.canMove = false;
 
         // Initial countdown display
-        countdown.textContent = `The game will restart in ${timeLeft} seconds`;
+        countdown.textContent = `The game will restart in\n${timeLeft} seconds`;
 
         // Update countdown every second
         this.countdownInterval = setInterval(() => {
             timeLeft--;
             if (timeLeft >= 0) {
-                countdown.textContent = `The game will restart in ${timeLeft} seconds`;
+                countdown.textContent = `The game will restart in\n${timeLeft} seconds`;
             }
         }, 1000);
 
