@@ -9,50 +9,105 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hero_title:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* Dynamic scaling based on viewport - more conservative */
+            --viewport-scale: min(1vw, 1vh);
+            --base-font-size: calc(var(--viewport-scale) * 1.2);
+            
+            /* Device-specific scaling */
+            --phone-scale: 0.75;
+            --tablet-scale: 0.9;
+            --desktop-scale: 1.0;
+        }
+
+        /* Auto-detect device type and apply scaling */
+        @media (max-width: 767px) {
+            :root {
+                --device-scale: var(--phone-scale);
+                --font-scale: 0.9;
+                --spacing-scale: 0.4;
+                --game-size: min(80vw, 60vh);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            :root {
+                --device-scale: var(--tablet-scale);
+                --font-scale: 1.0;
+                --spacing-scale: 0.6;
+                --game-size: min(70vw, 65vh);
+            }
+        }
+
+        @media (min-width: 1025px) {
+            :root {
+                --device-scale: var(--desktop-scale);
+                --font-scale: 1.1;
+                --spacing-scale: 0.8;
+                --game-size: min(60vw, 70vh);
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
         body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
             background-color: #0a0a0a;
             font-family: 'Hero_title', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             touch-action: pan-y;
-            overflow-x: hidden;
-            overflow-y: auto;
+            font-size: calc(var(--base-font-size) * var(--font-scale));
+            color: white;
         }
 
         #game-wrapper {
-            position: relative;
-            width: 100%;
-            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            padding: 20px 0;
+            align-items: center;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
 
         .game-container {
             background-color: #0a0a0a;
-            padding: 1.5rem;
-            border-radius: 20px;
+            padding: calc(0.3rem * var(--spacing-scale));
+            border-radius: calc(15px * var(--device-scale));
             text-align: center;
             color: white;
-            width: 95%;
-            max-width: 900px;
-            margin: 10px auto;
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            z-index: 2;
         }
 
         .zephyrus-logo {
             position: absolute;
-            top: 1rem;
-            left: 1rem;
-            width: 120px;
+            top: calc(0.3rem * var(--spacing-scale));
+            left: calc(0.3rem * var(--spacing-scale));
+            width: calc(50px * var(--device-scale));
             height: auto;
             opacity: 0.8;
             transition: opacity 0.3s ease;
@@ -66,342 +121,400 @@
         }
 
         h1 {
-            font-size: 2.5em;
-            margin-bottom: 0.5em;
+            font-size: calc(1.2rem * var(--font-scale));
+            margin-bottom: calc(0.2rem * var(--spacing-scale));
             font-weight: 700;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
             color: #ffffff;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.6);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
             font-family: 'Montserrat', 'Inter', sans-serif;
+            line-height: 1.0;
         }
 
-        .subtitle {
-            font-size: 1.1em;
-            margin-bottom: 1.5em;
-            color: #ffffff;
+        .subtitle, .game-subtitle {
+            font-size: calc(0.7rem * var(--font-scale));
+            margin-bottom: calc(0.2rem * var(--spacing-scale));
+            color: #CCCCCC;
             font-weight: 400;
-            letter-spacing: 0.02em;
-            font-family: 'Hero_title', sans-serif;
+            font-style: italic;
+            text-align: center;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            line-height: 1.2;
         }
 
         #maze-container {
             background-color: #0a0a0a;
-            padding: 15px;
-            border-radius: 15px;
-            margin: 15px auto;
+            padding: calc(3px * var(--spacing-scale));
+            border-radius: calc(8px * var(--device-scale));
+            margin: calc(3px * var(--spacing-scale)) auto;
             position: relative;
-            width: 90%;
-            max-width: 800px;
-            aspect-ratio: 1;
+            width: var(--game-size);
+            height: var(--game-size);
+            max-width: var(--game-size);
+            max-height: var(--game-size);
             overflow: visible;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 1;
+            z-index: 10;
         }
 
         canvas {
             background-color: #0a0a0a;
-            border-radius: 10px;
+            border-radius: 5px;
             touch-action: none;
             width: 100%;
             height: 100%;
             display: block;
+            position: relative;
+            z-index: 11;
         }
 
+        /* Modal styles - very conservative sizing */
         #modal-container {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 9999;
             pointer-events: none;
+            overflow: hidden;
         }
 
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: rgba(10, 10, 10, 0.8);
             backdrop-filter: blur(5px);
             z-index: 9998;
             display: none;
             pointer-events: auto;
+            overflow: hidden;
         }
 
         .modal {
             background: rgba(10, 10, 10, 0.98);
-            padding: 3rem;
-            border-radius: 20px;
+            padding: calc(0.8rem * var(--spacing-scale));
+            border-radius: calc(12px * var(--device-scale));
             text-align: center;
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            min-width: 320px;
-            max-width: 90vw;
+            width: calc(min(75vw, 350px));
+            max-height: calc(min(75vh, 400px));
             display: none;
             pointer-events: auto;
             position: relative;
             z-index: 9999;
             backdrop-filter: blur(10px);
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .modal h2 {
             color: transparent;
             -webkit-text-stroke: 1px #ffffff;
             text-stroke: 1px #ffffff;
-            margin: 0 0 2rem 0;
-            font-size: 1.8em;
+            margin: 0 0 calc(0.6rem * var(--spacing-scale)) 0;
+            font-size: calc(1.0rem * var(--font-scale));
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-family: 'Hero_title', sans-serif;
+            line-height: 1.0;
         }
 
         .modal p {
-            margin: 0 0 2rem 0;
-            line-height: 1.8;
-            font-size: 1.2em;
+            margin: 0 0 calc(0.6rem * var(--spacing-scale)) 0;
+            line-height: 1.4;
+            font-size: calc(0.8rem * var(--font-scale));
             color: #ffffff;
             font-family: 'Hero_title', sans-serif;
         }
 
-        .start-button {
+        .start-button, .replay-button, .failure-button {
             background: linear-gradient(135deg, #4F8EF7, #70A7FF);
             color: white;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 1.2rem 2.5rem;
-            border-radius: 12px;
-            font-size: 1.3em;
+            padding: calc(0.6rem * var(--spacing-scale)) calc(1.2rem * var(--spacing-scale));
+            border-radius: calc(6px * var(--device-scale));
+            font-size: calc(0.8rem * var(--font-scale));
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Montserrat', 'Inter', sans-serif;
-            min-width: 200px;
-            margin: 1.5rem auto 0 auto;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            box-shadow: 0 0 20px rgba(79, 142, 247, 0.4);
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(79, 142, 247, 0.4);
             position: relative;
             overflow: hidden;
             display: block;
+            margin: calc(0.6rem * var(--spacing-scale)) auto;
         }
 
-        .start-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .start-button:hover {
+        .start-button:hover, .replay-button:hover, .failure-button:hover {
             background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
-            border-color: rgba(255, 255, 255, 0.6);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(79, 142, 247, 0.6);
-        }
-
-        .start-button:hover::before {
-            left: 100%;
-        }
-
-        .start-button:active {
-            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
             transform: translateY(-1px);
+            box-shadow: 0 3px 15px rgba(79, 142, 247, 0.6);
         }
 
-        .success-modal p {
-            margin: 1rem 0;
-            line-height: 1.6;
-            font-size: 1.2em;
-        }
-
-        /* Beautiful Success Modal Styles */
+        /* Success modal specific styles */
         .success-modal {
-            max-width: 500px;
+            width: calc(min(80vw, 380px));
+            max-height: calc(min(80vh, 450px));
             padding: 0;
             background: rgba(10, 10, 10, 0.98);
             border: 2px solid rgba(79, 142, 247, 0.3);
             box-shadow: 0 20px 60px rgba(79, 142, 247, 0.2);
             overflow: hidden;
-            position: relative;
         }
 
         .success-header {
             background: linear-gradient(135deg, #4F8EF7, #70A7FF);
-            padding: 2rem;
+            padding: calc(1.0rem * var(--spacing-scale));
             text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .success-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: shine 3s ease-in-out infinite;
         }
 
         .success-header h2 {
             margin: 0;
-            font-size: 28pt;
-            font-weight: 700;
+            font-size: calc(1.4rem * var(--font-scale));
             color: #ffffff;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6);
-            animation: celebrationPulse 2s ease-in-out infinite alternate;
-            position: relative;
-            z-index: 2;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
             font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .success-subtitle {
-            font-size: 16pt;
+            font-size: calc(0.8rem * var(--font-scale));
             color: #DDDDDD;
-            margin-top: 0.5rem;
-            font-weight: 400;
-            position: relative;
-            z-index: 2;
+            margin-top: 0.2rem;
             font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .success-content {
-            padding: 2rem;
-        }
-
-        .reward-info {
-            text-align: center;
-            margin-bottom: 2rem;
+            padding: calc(1.0rem * var(--spacing-scale));
         }
 
         .celebration-text {
-            font-size: 1.3em;
+            font-size: calc(0.9rem * var(--font-scale));
             font-weight: 700;
             color: #ffffff;
-            margin-bottom: 1rem;
+            margin-bottom: 0.6rem;
             font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .promo-label {
-            font-size: 1.1em;
+            font-size: calc(0.8rem * var(--font-scale));
             color: #ffffff;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.8rem;
             font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .buttons-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .claim-button, .replay-button {
-            flex: 1;
-            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            font-size: 1em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(79, 142, 247, 0.3);
-        }
-
-        .claim-button:hover, .replay-button:hover {
-            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.5);
-        }
-
-        .claim-button:active, .replay-button:active {
-            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
-            transform: translateY(0);
         }
 
         .promo-code-box {
             background: #222222;
             border: 2px solid #4F8EF7;
-            padding: 1rem 2rem;
-            border-radius: 12px;
+            padding: calc(0.6rem * var(--spacing-scale)) calc(1.0rem * var(--spacing-scale));
+            border-radius: 6px;
             font-family: 'Courier New', monospace;
-            font-size: 1.4em;
+            font-size: calc(1.0rem * var(--font-scale));
             font-weight: bold;
-            letter-spacing: 0.15em;
+            letter-spacing: 0.1em;
             color: #ffffff;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.8rem;
             text-transform: uppercase;
         }
 
         .qr-section {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 1.5rem;
         }
 
         .qr-hint {
-            font-size: 12pt;
+            font-size: calc(0.7rem * var(--font-scale));
             color: #AAAAAA;
-            margin-bottom: 1rem;
+            margin-bottom: 0.6rem;
             font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
         .qr-code {
             background: white;
-            border-radius: 15px;
-            padding: 1.2rem;
+            border-radius: 8px;
+            padding: 0.6rem;
             display: inline-block;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-            margin-bottom: 0.5rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            margin-bottom: 0.2rem;
         }
 
         .qr-code img {
             display: block;
-            width: 150px;
-            height: 150px;
-            border-radius: 8px;
+            width: calc(100px * var(--device-scale));
+            height: calc(100px * var(--device-scale));
+            border-radius: 4px;
         }
 
         .qr-caption {
-            font-size: 12pt;
+            font-size: calc(0.7rem * var(--font-scale));
             color: #888888;
             font-family: 'Montserrat', 'Inter', sans-serif;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1.0rem;
         }
 
         .success-footer {
             background: rgba(0, 0, 0, 0.3);
-            padding: 1.5rem;
+            padding: calc(0.8rem * var(--spacing-scale));
             text-align: center;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .countdown {
-            font-size: 12pt;
+            font-size: calc(0.7rem * var(--font-scale));
             color: #BBBBBB;
             margin: 0;
-            font-weight: 500;
             font-family: 'Montserrat', 'Inter', sans-serif;
         }
 
+        /* Welcome modal styles */
+        .welcome-modal {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            width: calc(min(80vw, 400px));
+            max-height: calc(min(80vh, 500px));
+        }
+
+        .welcome-modal h2 {
+            font-size: calc(1.2rem * var(--font-scale));
+            letter-spacing: 0.5px;
+            margin-bottom: calc(0.8rem * var(--spacing-scale));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: calc(0.4rem * var(--spacing-scale));
+        }
+
+        .welcome-logo {
+            filter: drop-shadow(0 0 8px #4F8EF7);
+            width: calc(30px * var(--device-scale));
+            height: calc(22px * var(--device-scale));
+        }
+
+        .neon-highlight {
+            color: #4F8EF7;
+            text-shadow: 0 0 8px #4F8EF7;
+        }
+
+        .briefing-section, .reward-section {
+            margin: calc(0.8rem * var(--spacing-scale)) 0;
+            padding: calc(0.8rem * var(--spacing-scale));
+            background: linear-gradient(135deg, rgba(77, 138, 227, 0.15), rgba(104, 154, 148, 0.15));
+            border: 2px solid rgba(79, 142, 247, 0.3);
+            border-radius: calc(8px * var(--device-scale));
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            font-size: calc(0.9rem * var(--font-scale));
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 calc(0.6rem * var(--spacing-scale)) 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .briefing-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: calc(0.6rem * var(--spacing-scale)) auto;
+            font-size: calc(0.7rem * var(--font-scale));
+            line-height: 1.3;
+            color: #ffffff;
+            text-align: center;
+            gap: calc(0.4rem * var(--spacing-scale));
+        }
+
+        .brief-icon {
+            font-size: calc(1.0rem * var(--font-scale));
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+            flex-shrink: 0;
+        }
+
+        .reward-text {
+            font-size: calc(0.7rem * var(--font-scale));
+            line-height: 1.3;
+            color: #ffffff;
+            margin: 0;
+            text-align: center;
+        }
+
+        .start-prompt {
+            text-align: center;
+            font-size: calc(0.8rem * var(--font-scale));
+            font-weight: 500;
+            color: #CCCCCC;
+            margin: calc(0.8rem * var(--spacing-scale)) 0 calc(0.4rem * var(--spacing-scale)) 0;
+        }
+
+        .timer-prompt {
+            text-align: center;
+            font-size: calc(0.7rem * var(--font-scale));
+            color: #BBBBBB;
+            margin-top: calc(0.4rem * var(--spacing-scale));
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        /* Failure modal styles */
+        .failure-modal {
+            background: linear-gradient(135deg, #330000, #110000);
+            border: 2px solid rgba(244, 67, 54, 0.3);
+            box-shadow: 0 20px 60px rgba(244, 67, 54, 0.2);
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .failure-content {
+            text-align: center;
+            padding: calc(1.2rem * var(--spacing-scale));
+        }
+
+        .failure-heading {
+            font-size: calc(1.2rem * var(--font-scale));
+            font-weight: 700;
+            color: #FF4C4C;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 0.6rem 0;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .failure-subtitle {
+            font-size: calc(0.8rem * var(--font-scale));
+            color: #DDDDDD;
+            font-weight: 400;
+            margin-bottom: 1.2rem;
+            font-family: 'Montserrat', 'Inter', sans-serif;
+        }
+
+        .glitch-effect {
+            animation: glitch 0.2s ease-in-out 3;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-1px, 1px); }
+            40% { transform: translate(-1px, -1px); }
+            60% { transform: translate(1px, 1px); }
+            80% { transform: translate(1px, -1px); }
+            100% { transform: translate(0); }
+        }
+
+        /* Celebration particles */
         .celebration-particles {
             position: absolute;
             top: 0;
@@ -418,929 +531,30 @@
 
         @keyframes particleFloat {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            33% { transform: translateY(-10px) rotate(120deg); }
-            66% { transform: translateY(5px) rotate(240deg); }
+            33% { transform: translateY(-8px) rotate(120deg); }
+            66% { transform: translateY(4px) rotate(240deg); }
         }
-
-        /* Mobile responsiveness for success modal - REMOVED to prevent conflicts */
-        /*
-        @media (max-width: 767px) {
-            .success-modal {
-                max-width: 95vw;
-                margin: 0 10px;
-            }
-            
-            .success-header {
-                padding: 1.5rem;
-            }
-            
-            .success-header h2 {
-                font-size: 1.8em;
-            }
-            
-            .success-subtitle {
-                font-size: 1em;
-            }
-            
-            .success-content {
-                padding: 1.5rem;
-            }
-            
-            .achievement-badge {
-                flex-direction: column;
-                text-align: center;
-                padding: 1rem;
-            }
-            
-            .badge-icon {
-                margin-right: 0;
-                margin-bottom: 0.5rem;
-                font-size: 2.5em;
-            }
-            
-            .badge-text {
-                text-align: center;
-            }
-            
-            .promo-code {
-                font-size: 1.4em;
-                padding: 0.8rem 1.5rem;
-            }
-            
-            .qr-code img {
-                width: 120px;
-                height: 120px;
-            }
-        }
-        */
-
-        .welcome-text {
-            font-size: 1.1em;
-            margin-bottom: 1.2em;
-            color: #ffffff;
-            font-weight: 400;
-            letter-spacing: 0.02em;
-            font-family: 'Hero_title', sans-serif;
-            line-height: 1.6;
-        }
-
-        .path-choice {
-            font-size: 1.05em;
-            margin-bottom: 1.5em;
-            color: #ffffff;
-            font-weight: 500;
-            font-family: 'Hero_title', sans-serif;
-            line-height: 1.5;
-        }
-
-        .modal welcome-modal p {
-            margin-bottom: 1.2em;
-        }
-
-        /* REMOVING DUPLICATE MEDIA QUERIES TO PREVENT CONFLICTS */
-        /*
-        @media (min-width: 768px) and (max-width: 1024px) {
-            .game-container {
-                padding: 2rem;
-                max-width: 95%;
-            }
-
-            .zephyrus-logo {
-                top: 1.5rem;
-                left: 1.5rem;
-                width: 120px;
-            }
-
-            h1 {
-                font-size: 2.8em;
-            }
-
-            #maze-container {
-                padding: 20px;
-                margin: 20px auto;
-                width: 95%;
-            }
-
-            .modal {
-                padding: 3.5rem;
-                min-width: 420px;
-            }
-
-            .modal h2 {
-                font-size: 2.2em;
-            }
-
-            .start-button {
-                padding: 1.2rem 2.5rem;
-                font-size: 1.4em;
-                min-width: 200px;
-            }
-        }
-
-        @media (max-width: 767px) {
-            body {
-                padding: 10px;
-            }
-
-            .game-container {
-                padding: 1rem;
-                padding-top: 4rem;
-                width: 100%;
-                margin: 0;
-            }
-
-            .zephyrus-logo {
-                top: 0.5rem;
-                left: 0.5rem;
-                width: 120px;
-            }
-
-            h1 {
-                font-size: 2em;
-                margin: 0.3em 0;
-                margin-top: 0;
-            }
-
-            #maze-container {
-                padding: 10px;
-                margin: 10px auto;
-                width: 95%;
-            }
-
-            .modal {
-                padding: 2.5rem;
-                min-width: 300px;
-                max-width: 95vw;
-            }
-
-            .modal h2 {
-                font-size: 1.6em;
-                margin-bottom: 1rem;
-            }
-
-            .start-button {
-                padding: 0.8rem 1.8rem;
-                font-size: 1.2em;
-                min-width: 140px;
-            }
-        }
-        */
 
         /* Landscape orientation adjustments */
-        @media (max-height: 600px) and (orientation: landscape) {
+        @media (max-height: 500px) and (orientation: landscape) {
             .game-container {
-                padding: 1rem;
+                padding: calc(0.2rem * var(--spacing-scale));
             }
 
             h1 {
-                font-size: 2em;
-                margin: 0.2em 0;
+                font-size: calc(1.0rem * var(--font-scale));
+                margin-bottom: calc(0.1rem * var(--spacing-scale));
             }
 
             #maze-container {
-                padding: 10px;
-                margin: 10px auto;
-                height: 80vh;
-                width: auto;
-                aspect-ratio: 1;
-            }
-        }
-
-        /* Highlighted terms */
-        .highlight {
-            color: #ffffff;
-            font-weight: 600;
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-
-        /* Stylish Welcome Modal Styles */
-        .welcome-modal {
-            font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .welcome-modal h2 {
-            font-size: 2.4em;
-            letter-spacing: 1.5px;
-            margin-bottom: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .welcome-logo {
-            filter: drop-shadow(0 0 10px #4F8EF7) drop-shadow(0 0 20px #4F8EF7);
-            animation: logoGlow 2s ease-in-out infinite alternate;
-            vertical-align: middle;
-        }
-
-        @keyframes logoGlow {
-            0% { filter: drop-shadow(0 0 10px #4F8EF7) drop-shadow(0 0 20px #4F8EF7); }
-            100% { filter: drop-shadow(0 0 15px #70A7FF) drop-shadow(0 0 25px #70A7FF); }
-        }
-
-        .neon-highlight {
-            color: #4F8EF7;
-            text-shadow: 0 0 10px #4F8EF7, 0 0 20px #4F8EF7, 0 0 30px #4F8EF7;
-            animation: neonGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes neonGlow {
-            0% { text-shadow: 0 0 10px #4F8EF7, 0 0 20px #4F8EF7, 0 0 30px #4F8EF7; }
-            100% { text-shadow: 0 0 15px #70A7FF, 0 0 25px #70A7FF, 0 0 35px #70A7FF; }
-        }
-
-        .mission-brief {
-            text-align: center;
-            margin: 2rem 0;
-            line-height: 1.8;
-        }
-
-        .briefing-section {
-            margin: 2rem 0;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(77, 138, 227, 0.15), rgba(104, 154, 148, 0.15));
-            border: 2px solid rgba(79, 142, 247, 0.3);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(79, 142, 247, 0.2);
-        }
-
-        .reward-section {
-            margin: 2rem 0;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(212, 160, 23, 0.2), rgba(255, 193, 7, 0.15));
-            border: 2px solid rgba(212, 160, 23, 0.4);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(212, 160, 23, 0.3);
-        }
-
-        .section-title {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 0 0 1.5rem 0;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            text-align: center;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        .briefing-item {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 1.5rem auto;
-            font-size: 1.2em;
-            line-height: 1.8;
-            color: #ffffff;
-            text-align: center;
-            word-spacing: normal;
-            white-space: normal;
-            max-width: 90%;
-            gap: 1rem;
-        }
-
-        .briefing-text {
-            flex: 0 1 auto;
-            word-spacing: normal;
-            letter-spacing: normal;
-            text-align: left;
-        }
-
-        .brief-icon {
-            font-size: 1.8em;
-            margin-right: 0;
-            margin-top: 0.1rem;
-            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.4));
-            animation: iconGlow 2s ease-in-out infinite alternate;
-            flex-shrink: 0;
-            width: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .reward-text {
-            font-size: 1.2em;
-            line-height: 1.8;
-            color: #ffffff;
-            margin: 0;
-            text-align: center;
-        }
-
-        .start-prompt {
-            text-align: center;
-            font-size: 1.3em;
-            font-weight: 500;
-            color: #CCCCCC;
-            margin: 2rem 0 1rem 0;
-            letter-spacing: 0.02em;
-        }
-
-        .timer-prompt {
-            text-align: center;
-            font-size: 12pt;
-            color: #BBBBBB;
-            margin-top: 1rem;
-            font-weight: 400;
-            opacity: 0.8;
-        }
-
-        .game-subtitle {
-            font-size: 14pt;
-            color: #CCCCCC;
-            font-style: italic;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .legend-panel {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 320px;
-            backdrop-filter: blur(5px);
-            z-index: 10;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.3rem;
-            font-size: 0.9em;
-        }
-
-        .legend-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .legend-icon {
-            font-size: 24px;
-            margin-right: 0.5rem;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .legend-text {
-            font-size: 11pt;
-            line-height: 1.3;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        .legend-item.good .legend-text {
-            color: #A8E06F;
-        }
-
-        .legend-item.bad .legend-text {
-            color: #FF4C4C;
-        }
-
-        /* Failure Screen Styles */
-        .failure-modal {
-            background: linear-gradient(135deg, #330000, #110000);
-            border: 2px solid rgba(244, 67, 54, 0.3);
-            box-shadow: 0 20px 60px rgba(244, 67, 54, 0.2);
-            font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .failure-content {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .failure-heading {
-            font-size: 28pt;
-            font-weight: 700;
-            color: #FF4C4C;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin: 0 0 1rem 0;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .failure-subtitle {
-            font-size: 16pt;
-            color: #DDDDDD;
-            font-weight: 400;
-            margin-bottom: 2rem;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-        }
-
-        .failure-button {
-            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 1.2rem 2.5rem;
-            border-radius: 12px;
-            font-size: 1.3em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            box-shadow: 0 0 20px rgba(79, 142, 247, 0.4);
-        }
-
-        .failure-button:hover {
-            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.6);
-        }
-
-        .failure-button:active {
-            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
-            transform: translateY(0);
-        }
-
-        .glitch-effect {
-            animation: glitch 0.2s ease-in-out 3;
-        }
-
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
-
-        /* General animation keyframes */
-        @keyframes shine {
-            0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        @keyframes celebrationPulse {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
-        }
-
-        @keyframes iconGlow {
-            0% {
-                filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
-                transform: scale(1);
-            }
-            100% {
-                filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.6));
-                transform: scale(1.05);
-            }
-        }
-
-        .replay-button {
-            background: linear-gradient(135deg, #4F8EF7, #70A7FF);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-size: 1.1em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Montserrat', 'Inter', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(79, 142, 247, 0.3);
-            display: block;
-            margin: 0 auto 1.5rem auto;
-            min-width: 200px;
-        }
-
-        .replay-button:hover {
-            background: linear-gradient(135deg, #5A9BF0, #7AB0A6);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(79, 142, 247, 0.5);
-        }
-
-        .replay-button:active {
-            background: linear-gradient(135deg, #3F7EE7, #5A8A84);
-            transform: translateY(0);
-        }
-
-        /* iOS-specific optimizations for viewport fitting - FIXED */
-        @supports (-webkit-touch-callout: none) {
-            /* iOS Safari specific styles */
-            body {
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-                -webkit-user-select: none;
-                -webkit-touch-callout: none;
-                -webkit-tap-highlight-color: transparent;
-                overflow-x: hidden;
-                overflow-y: auto; /* Allow vertical scrolling when needed */
-            }
-            
-            #game-wrapper {
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-                padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-                overflow-y: auto; /* Allow scrolling in wrapper */
-            }
-        }
-
-        /* Mobile responsiveness optimizations */
-        @media (max-width: 767px) {
-            body {
-                padding: 0;
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-            }
-
-            .game-container {
-                padding: 0.8rem;
-                padding-top: 3rem;
-                width: 100%;
-                margin: 0;
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-            }
-
-            .zephyrus-logo {
-                top: 0.3rem;
-                left: 0.3rem;
-                width: 100px;
-            }
-
-            h1 {
-                font-size: 1.6em;
-                margin: 0.2em 0;
-                margin-top: 0;
-                line-height: 1.1;
-            }
-
-            .game-subtitle {
-                font-size: 11pt;
-                margin-bottom: 0.8rem;
-            }
-
-            #maze-container {
-                padding: 8px;
-                margin: 8px auto;
-                width: 95%;
-                max-width: 90vmin;
-                height: auto;
-                aspect-ratio: 1;
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                width: calc(min(50vw, 80vh));
+                height: calc(min(50vw, 80vh));
+                margin: calc(2px * var(--spacing-scale)) auto;
             }
 
             .modal {
-                padding: 1.5rem;
-                min-width: 280px;
-                max-width: 95vw;
-                max-height: 95vh;
-                overflow-y: auto;
-                margin: 10px;
-            }
-
-            .modal h2 {
-                font-size: 1.4em;
-                margin-bottom: 0.8rem;
-                line-height: 1.2;
-            }
-
-            .start-button {
-                padding: 0.7rem 1.5rem;
-                font-size: 1.1em;
-                min-width: 120px;
-                margin: 1rem auto 0 auto;
-            }
-
-            /* Welcome modal mobile optimizations */
-            .welcome-modal h2 {
-                font-size: 1.6em;
-                margin-bottom: 1.2rem;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .welcome-logo {
-                width: 40px;
-                height: 29px;
-            }
-
-            .briefing-section, .reward-section {
-                margin: 1.2rem 0;
-                padding: 1.2rem;
-            }
-
-            .section-title {
-                font-size: 1.1em;
-                margin-bottom: 1rem;
-            }
-
-            .briefing-item {
-                font-size: 1em;
-                margin: 1rem auto;
-                flex-direction: column;
-                text-align: center;
-                gap: 0.5rem;
-            }
-
-            .briefing-text {
-                text-align: center;
-            }
-
-            .brief-icon {
-                font-size: 1.5em;
-                margin-bottom: 0.3rem;
-            }
-
-            .reward-text {
-                font-size: 1em;
-                line-height: 1.6;
-            }
-
-            .start-prompt {
-                font-size: 1.1em;
-                margin: 1.2rem 0 0.8rem 0;
-            }
-
-            .timer-prompt {
-                font-size: 10pt;
-                margin-top: 0.8rem;
-            }
-        }
-
-        /* iPhone SE and smaller screens */
-        @media (max-height: 667px) and (max-width: 375px) {
-            .game-container {
-                padding: 0.5rem;
-                padding-top: 2.5rem;
-            }
-
-            h1 {
-                font-size: 1.4em;
-                margin: 0.1em 0;
-            }
-
-            .game-subtitle {
-                font-size: 10pt;
-                margin-bottom: 0.5rem;
-            }
-
-            #maze-container {
-                padding: 5px;
-                margin: 5px auto;
-                width: 95%;
-                max-width: 85vmin;
-            }
-
-            .modal {
-                padding: 1rem;
-                min-width: 260px;
-                max-height: 90vh;
-            }
-
-            .welcome-modal h2 {
-                font-size: 1.3em;
-                margin-bottom: 0.8rem;
-            }
-
-            .briefing-section, .reward-section {
-                margin: 0.8rem 0;
-                padding: 0.8rem;
-            }
-
-            .section-title {
-                font-size: 1em;
-                margin-bottom: 0.8rem;
-            }
-
-            .briefing-item {
-                font-size: 0.9em;
-                margin: 0.8rem auto;
-            }
-
-            .start-button {
-                padding: 0.6rem 1.2rem;
-                font-size: 1em;
-                margin: 0.8rem auto 0 auto;
-            }
-
-            .timer-prompt {
-                font-size: 9pt;
-                margin-top: 0.5rem;
-            }
-        }
-
-        /* iPad optimizations */
-        @media (min-width: 768px) and (max-width: 1024px) {
-            body {
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-            }
-
-            .game-container {
-                padding: 1.5rem;
-                max-width: 95%;
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-
-            .zephyrus-logo {
-                top: 1rem;
-                left: 1rem;
-                width: 100px;
-            }
-
-            h1 {
-                font-size: 2.2em;
-                margin: 0.4em 0;
-            }
-
-            .game-subtitle {
-                font-size: 12pt;
-                margin-bottom: 1rem;
-            }
-
-            #maze-container {
-                padding: 15px;
-                margin: 15px auto;
-                width: 85%;
-                max-width: 70vmin;
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .modal {
-                padding: 2.5rem;
-                min-width: 400px;
-                max-width: 85vw;
-                max-height: 90vh;
-                overflow-y: auto;
-            }
-
-            .modal h2 {
-                font-size: 1.8em;
-                margin-bottom: 1.5rem;
-            }
-
-            .start-button {
-                padding: 1rem 2rem;
-                font-size: 1.2em;
-                min-width: 180px;
-            }
-
-            /* Welcome modal iPad optimizations */
-            .welcome-modal h2 {
-                font-size: 2em;
-                margin-bottom: 1.5rem;
-            }
-
-            .briefing-section, .reward-section {
-                margin: 1.5rem 0;
-                padding: 1.5rem;
-            }
-
-            .section-title {
-                font-size: 1.2em;
-                margin-bottom: 1.2rem;
-            }
-
-            .briefing-item {
-                font-size: 1.1em;
-                margin: 1.2rem auto;
-            }
-
-            .reward-text {
-                font-size: 1.1em;
-            }
-
-            .start-prompt {
-                font-size: 1.2em;
-                margin: 1.5rem 0 1rem 0;
-            }
-        }
-
-        /* Success modal mobile optimizations */
-        @media (max-width: 767px) {
-            .success-modal {
-                max-width: 95vw;
-                margin: 5px;
-                max-height: 95vh;
-                overflow-y: auto;
-            }
-            
-            .success-header {
-                padding: 1.2rem;
-            }
-            
-            .success-header h2 {
-                font-size: 1.6em;
-                line-height: 1.1;
-            }
-            
-            .success-subtitle {
-                font-size: 11pt;
-                margin-top: 0.3rem;
-            }
-            
-            .success-content {
-                padding: 1.2rem;
-            }
-
-            .celebration-text {
-                font-size: 1.1em;
-                margin-bottom: 0.8rem;
-            }
-
-            .promo-label {
-                font-size: 1em;
-                margin-bottom: 1rem;
-            }
-            
-            .promo-code-box {
-                font-size: 1.2em;
-                padding: 0.8rem 1.5rem;
-                margin-bottom: 1.2rem;
-            }
-            
-            .qr-section {
-                margin-bottom: 2rem;
-            }
-
-            .qr-hint {
-                font-size: 10pt;
-                margin-bottom: 0.8rem;
-            }
-            
-            .qr-code img {
-                width: 120px;
-                height: 120px;
-            }
-
-            .qr-caption {
-                font-size: 10pt;
-                margin-bottom: 2rem;
-            }
-
-            .replay-button {
-                padding: 0.8rem 1.5rem;
-                font-size: 1em;
-                min-width: 160px;
-                margin-bottom: 1rem;
-            }
-
-            .success-footer {
-                padding: 1rem;
-            }
-
-            .countdown {
-                font-size: 10pt;
-            }
-        }
-
-        /* Failure modal mobile optimizations */
-        @media (max-width: 767px) {
-            .failure-modal {
-                max-width: 95vw;
-                margin: 5px;
-            }
-
-            .failure-content {
-                padding: 1.5rem;
-            }
-
-            .failure-heading {
-                font-size: 1.6em;
-                margin-bottom: 0.8rem;
-                line-height: 1.2;
-            }
-
-            .failure-subtitle {
-                font-size: 11pt;
-                margin-bottom: 1.5rem;
-            }
-
-            .failure-button {
-                padding: 0.8rem 1.8rem;
-                font-size: 1.1em;
+                width: calc(min(70vw, 300px));
+                max-height: calc(min(70vh, 350px));
             }
         }
     </style>
