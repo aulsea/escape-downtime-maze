@@ -1,0 +1,27 @@
+{
+  "name": "zephyrus-challenge",
+  "version": "1.0.0",
+  "description": "Navigate through the maze and collect data safely to the Zephyrus Hub",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step needed for static files'",
+    "dev": "python -m http.server 8000",
+    "ios:dev": "npx cap run ios",
+    "ios:build": "npx cap build ios",
+    "ios:open": "npx cap open ios",
+    "capacitor:init": "npx cap init",
+    "capacitor:add-ios": "npx cap add ios",
+    "capacitor:sync": "npx cap sync",
+    "install:capacitor": "npm install @capacitor/core @capacitor/cli @capacitor/ios"
+  },
+  "keywords": ["game", "maze", "zephyrus", "mobile", "pwa"],
+  "author": "Zephyrus Challenge Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.1"
+  },
+  "dependencies": {
+    "@capacitor/core": "^5.5.1",
+    "@capacitor/ios": "^5.5.1"
+  }
+} 
