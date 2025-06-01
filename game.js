@@ -1925,9 +1925,9 @@ class MazeGame {
     }
 
     generateRandomEndPosition() {
-        // Find a random valid position for the flag
+        // Find a random valid position for the flag that's reachable
         let attempts = 0;
-        const maxAttempts = 100;
+        const maxAttempts = 200;
         
         while (attempts < maxAttempts) {
             const x = Math.floor(Math.random() * (this.mazeSize - 2)) + 1;
@@ -1935,22 +1935,80 @@ class MazeGame {
             
             // Check if position is valid for flag placement
             if (this.maze[y][x] === 0 && // Open space
-                this.getDistance(x, y, 1, 1) > 4) { // Not too close to start (at least 4 cells away)
+                this.getDistance(x, y, 1, 1) > 4 && // Not too close to start (at least 4 cells away)
+                this.canReachDestination(1, 1, x, y)) { // Must be reachable from start
                 
                 this.endPos = {
                     x: x * this.cellSize + this.cellSize / 2,
                     y: y * this.cellSize + this.cellSize / 2
                 };
-                return;
+                
+                // Double-check that this position is in a well-connected area
+                // Count the number of open adjacent cells
+                let openAdjacent = 0;
+                const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                for (const [dx, dy] of directions) {
+                    const adjX = x + dx;
+                    const adjY = y + dy;
+                    if (adjX >= 0 && adjX < this.mazeSize && 
+                        adjY >= 0 && adjY < this.mazeSize &&
+                        this.maze[adjY][adjX] === 0) {
+                        openAdjacent++;
+                    }
+                }
+                
+                // Only accept positions with at least 2 open adjacent cells
+                // This ensures the flag isn't in a dead end
+                if (openAdjacent >= 2) {
+                    return;
+                }
             }
             attempts++;
         }
         
-        // Fallback to original corner position if no valid position found
-        this.endPos = {
-            x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
-            y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
-        };
+        // Fallback strategy: find the most connected reachable position
+        let bestPosition = null;
+        let bestConnectivity = 0;
+        
+        for (let y = 1; y < this.mazeSize - 1; y++) {
+            for (let x = 1; x < this.mazeSize - 1; x++) {
+                if (this.maze[y][x] === 0 && 
+                    this.getDistance(x, y, 1, 1) > 3 &&
+                    this.canReachDestination(1, 1, x, y)) {
+                    
+                    // Count connectivity of this position
+                    let connectivity = 0;
+                    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+                    for (const [dx, dy] of directions) {
+                        const adjX = x + dx;
+                        const adjY = y + dy;
+                        if (adjX >= 0 && adjX < this.mazeSize && 
+                            adjY >= 0 && adjY < this.mazeSize &&
+                            this.maze[adjY][adjX] === 0) {
+                            connectivity++;
+                        }
+                    }
+                    
+                    if (connectivity > bestConnectivity) {
+                        bestConnectivity = connectivity;
+                        bestPosition = { x, y };
+                    }
+                }
+            }
+        }
+        
+        if (bestPosition) {
+            this.endPos = {
+                x: bestPosition.x * this.cellSize + this.cellSize / 2,
+                y: bestPosition.y * this.cellSize + this.cellSize / 2
+            };
+        } else {
+            // Final fallback to original corner position
+            this.endPos = {
+                x: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2,
+                y: (this.mazeSize - 2) * this.cellSize + this.cellSize / 2
+            };
+        }
     }
 
     handleResize() {
@@ -2079,6 +2137,81 @@ class MazeGame {
         // This ensures we don't place obstacles on narrow corridors
         
         const adjacentPaths = [];
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        
+        for (const [dx, dy] of directions) {
+            const checkX = x + dx;
+            const checkY = y + dy;
+            
+            if (checkX >= 0 && checkX < this.mazeSize && 
+                checkY >= 0 && checkY < this.mazeSize &&
+                this.maze[checkY][checkX] === 0) {
+                
+                // Check if this adjacent cell has multiple connections
+                let connections = 0;
+                for (const [dx2, dy2] of directions) {
+                    const checkX2 = checkX + dx2;
+                    const checkY2 = checkY + dy2;
+                    
+                    if (checkX2 >= 0 && checkX2 < this.mazeSize && 
+                        checkY2 >= 0 && checkY2 < this.mazeSize &&
+                        this.maze[checkY2][checkX2] === 0) {
+                        connections++;
+                    }
+                }
+                
+                if (connections >= 2) {
+                    adjacentPaths.push({x: checkX, y: checkY, connections});
+                }
+            }
+        }
+        
+        // Return true if there are multiple well-connected adjacent paths
+        return adjacentPaths.length >= 2;
+    }
+
+    improvedCanReachDestination(startX, startY, endX, endY, avoidObstacles = false) {
+        // Enhanced pathfinding that can optionally avoid obstacle positions
+        const queue = [[startX, startY]];
+        const visited = new Set();
+        visited.add(`${startX},${startY}`);
+        
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        
+        while (queue.length > 0) {
+            const [x, y] = queue.shift();
+            
+            if (x === endX && y === endY) {
+                return true;
+            }
+            
+            for (const [dx, dy] of directions) {
+                const newX = x + dx;
+                const newY = y + dy;
+                const key = `${newX},${newY}`;
+                
+                if (newX >= 0 && newX < this.mazeSize && 
+                    newY >= 0 && newY < this.mazeSize &&
+                    !visited.has(key) &&
+                    this.maze[newY][newX] === 0) {
+                    
+                    // If avoiding obstacles, check if there's an obstacle here
+                    if (avoidObstacles) {
+                        const hasObstacle = this.obstacles.some(obs => 
+                            Math.floor((obs.x - this.cellSize / 2) / this.cellSize) === newX &&
+                            Math.floor((obs.y - this.cellSize / 2) / this.cellSize) === newY
+                        );
+                        if (hasObstacle) continue;
+                    }
+                    
+                    visited.add(key);
+                    queue.push([newX, newY]);
+                }
+            }
+        }
+        
+        return false;
+    }
 }
 
 // Start the game when the page loads
