@@ -17,9 +17,7 @@
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="zephyrus-icon.svg">
     <link rel="icon" type="image/svg+xml" href="zephyrus-icon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hero_title:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
             /* Dynamic scaling based on viewport - more conservative */
@@ -77,7 +75,7 @@
 
         body {
             background-color: #0a0a0a;
-            font-family: 'Hero_title', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             touch-action: pan-y;
             font-size: calc(var(--base-font-size) * var(--font-scale));
             color: white;
@@ -123,7 +121,7 @@
             text-transform: uppercase;
             color: #ffffff;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.0;
             display: flex;
             align-items: center;
@@ -145,7 +143,7 @@
             font-weight: 400;
             font-style: italic;
             text-align: center;
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.2;
         }
 
@@ -231,7 +229,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            font-family: 'Hero_title', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.3;
         }
 
@@ -240,7 +238,7 @@
             line-height: 1.6;
             font-size: calc(0.95rem * var(--font-scale));
             color: #ffffff;
-            font-family: 'Hero_title', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         }
 
         .start-button, .replay-button, .failure-button {
@@ -253,7 +251,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 0 10px rgba(79, 142, 247, 0.4);
@@ -291,7 +289,7 @@
             font-size: calc(1.5rem * var(--font-scale));
             color: #ffffff;
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.3;
         }
 
@@ -299,7 +297,7 @@
             font-size: calc(0.9rem * var(--font-scale));
             color: #DDDDDD;
             margin-top: calc(0.5rem * var(--spacing-scale));
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.4;
         }
 
@@ -312,7 +310,7 @@
             font-weight: 700;
             color: #ffffff;
             margin-bottom: calc(1.0rem * var(--spacing-scale));
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.4;
         }
 
@@ -320,7 +318,7 @@
             font-size: calc(0.9rem * var(--font-scale));
             color: #ffffff;
             margin-bottom: calc(1.0rem * var(--spacing-scale));
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.4;
         }
 
@@ -329,7 +327,7 @@
             border: 2px solid #4F8EF7;
             padding: calc(0.8rem * var(--spacing-scale)) calc(1.2rem * var(--spacing-scale));
             border-radius: 6px;
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', 'SF Mono', Monaco, 'Consolas', 'Liberation Mono', monospace;
             font-size: calc(1.1rem * var(--font-scale));
             font-weight: bold;
             letter-spacing: 0.1em;
@@ -388,7 +386,7 @@
         .qr-caption {
             font-size: calc(0.8rem * var(--font-scale));
             color: #888888;
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             margin-bottom: calc(1.2rem * var(--spacing-scale));
             line-height: 1.4;
         }
@@ -404,12 +402,12 @@
             font-size: calc(0.8rem * var(--font-scale));
             color: #BBBBBB;
             margin: 0;
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         }
 
         /* Welcome modal styles */
         .welcome-modal {
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             width: calc(min(90vw, 500px));
             max-height: calc(min(90vh, 650px));
         }
@@ -507,7 +505,7 @@
             background: linear-gradient(135deg, #330000, #110000);
             border: 2px solid rgba(244, 67, 54, 0.3);
             box-shadow: 0 20px 60px rgba(244, 67, 54, 0.2);
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             width: calc(min(90vw, 450px));
             max-height: calc(min(85vh, 450px));
         }
@@ -524,7 +522,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin: 0 0 calc(1.0rem * var(--spacing-scale)) 0;
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.3;
         }
 
@@ -533,7 +531,7 @@
             color: #DDDDDD;
             font-weight: 400;
             margin-bottom: calc(1.5rem * var(--spacing-scale));
-            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.5;
         }
 
@@ -706,17 +704,66 @@
 
     <script src="game.js"></script>
     <script>
-        // Register service worker for PWA functionality
+        // Enhanced service worker registration for offline functionality
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
                         console.log('ServiceWorker registration successful');
+                        
+                        // Check for updates
+                        registration.addEventListener('updatefound', function() {
+                            const newWorker = registration.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', function() {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // New version available, reload the page
+                                        window.location.reload();
+                                    }
+                                });
+                            }
+                        });
                     })
                     .catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
+                
+                // Handle offline/online events
+                function updateOnlineStatus() {
+                    const offlineIndicator = document.getElementById('offline-indicator');
+                    if (navigator.onLine) {
+                        if (offlineIndicator) offlineIndicator.style.display = 'none';
+                    } else {
+                        if (!offlineIndicator) {
+                            const indicator = document.createElement('div');
+                            indicator.id = 'offline-indicator';
+                            indicator.style.cssText = `
+                                position: fixed;
+                                top: 10px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: #333;
+                                color: white;
+                                padding: 8px 16px;
+                                border-radius: 4px;
+                                font-size: 14px;
+                                z-index: 10000;
+                                font-family: system-ui, -apple-system, sans-serif;
+                            `;
+                            indicator.textContent = '🔌 Offline Mode - Game Cached';
+                            document.body.appendChild(indicator);
+                        } else {
+                            offlineIndicator.style.display = 'block';
+                        }
+                    }
+                }
+                
+                window.addEventListener('online', updateOnlineStatus);
+                window.addEventListener('offline', updateOnlineStatus);
+                updateOnlineStatus(); // Check initial status
             });
+        } else {
+            console.log('Service Worker not supported');
         }
     </script>
 </body>
