@@ -14,19 +14,19 @@ class MazeGame {
         this.wallThickness = 2;
         this.playerSize = 10;
         
-        // Significantly reduced movement speed for robust collision detection
+        // Balanced movement speed - responsive but safe with robust collision detection
         if (this.isIPhone) {
-            this.moveSpeed = 0.25; // Much slower for stable movement
-            this.responsiveMultiplier = 1.2; // Much less responsive to prevent overshoot
+            this.moveSpeed = 0.4; // Increased for better responsiveness
+            this.responsiveMultiplier = 1.8; // More responsive but controlled
         } else if (this.isTablet) {
-            this.moveSpeed = 0.3; // Slower for stable movement
-            this.responsiveMultiplier = 1.5; // Less responsive
+            this.moveSpeed = 0.45; // Increased for better responsiveness
+            this.responsiveMultiplier = 2.0; // More responsive
         } else if (this.isMobile) {
-            this.moveSpeed = 0.3; // Slower for stable movement
-            this.responsiveMultiplier = 1.5; // Less responsive
+            this.moveSpeed = 0.45; // Increased for better responsiveness
+            this.responsiveMultiplier = 2.0; // More responsive
         } else {
-            this.moveSpeed = 0.25; // Desktop speed - slower for stability
-            this.responsiveMultiplier = 1.0; // Standard responsiveness
+            this.moveSpeed = 0.4; // Desktop speed - increased for better feel
+            this.responsiveMultiplier = 1.5; // Good responsiveness for desktop
         }
         
         // Fixed icon sizes that don't change during zoom with iPhone optimizations
@@ -689,15 +689,15 @@ class MazeGame {
         // Calculate distance to target
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 0.1) { // Increased threshold for more stable movement
-            // Much more conservative maximum movement per frame
+        if (distance > 0.05) { // Reduced threshold for more responsive movement
+            // Balanced maximum movement per frame - responsive but safe
             let maxMovePerFrame;
             if (this.isIPhone) {
-                maxMovePerFrame = this.cellSize * 0.15; // Very small moves on iPhone
+                maxMovePerFrame = this.cellSize * 0.25; // Increased for better responsiveness
             } else if (this.isMobile) {
-                maxMovePerFrame = this.cellSize * 0.18; // Small moves on mobile
+                maxMovePerFrame = this.cellSize * 0.3; // Increased for smoother movement
             } else {
-                maxMovePerFrame = this.cellSize * 0.2; // Conservative desktop movement
+                maxMovePerFrame = this.cellSize * 0.35; // Good desktop movement
             }
             
             // Calculate movement this frame with reduced responsiveness
