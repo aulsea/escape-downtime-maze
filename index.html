@@ -710,57 +710,10 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
                         console.log('ServiceWorker registration successful');
-                        
-                        // Check for updates
-                        registration.addEventListener('updatefound', function() {
-                            const newWorker = registration.installing;
-                            if (newWorker) {
-                                newWorker.addEventListener('statechange', function() {
-                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        // New version available, reload the page
-                                        window.location.reload();
-                                    }
-                                });
-                            }
-                        });
                     })
                     .catch(function(err) {
                         console.log('ServiceWorker registration failed: ', err);
                     });
-                
-                // Handle offline/online events
-                function updateOnlineStatus() {
-                    const offlineIndicator = document.getElementById('offline-indicator');
-                    if (navigator.onLine) {
-                        if (offlineIndicator) offlineIndicator.style.display = 'none';
-                    } else {
-                        if (!offlineIndicator) {
-                            const indicator = document.createElement('div');
-                            indicator.id = 'offline-indicator';
-                            indicator.style.cssText = `
-                                position: fixed;
-                                top: 10px;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: #333;
-                                color: white;
-                                padding: 8px 16px;
-                                border-radius: 4px;
-                                font-size: 14px;
-                                z-index: 10000;
-                                font-family: system-ui, -apple-system, sans-serif;
-                            `;
-                            indicator.textContent = '🔌 Offline Mode - Game Cached';
-                            document.body.appendChild(indicator);
-                        } else {
-                            offlineIndicator.style.display = 'block';
-                        }
-                    }
-                }
-                
-                window.addEventListener('online', updateOnlineStatus);
-                window.addEventListener('offline', updateOnlineStatus);
-                updateOnlineStatus(); // Check initial status
             });
         } else {
             console.log('Service Worker not supported');
