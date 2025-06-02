@@ -73,13 +73,13 @@ self.addEventListener('fetch', function(event) {
             return response;
           })
           .catch(function() {
-            // Network failed and no cache - provide offline fallbacks
+            // Network failed and no cache - provide fallbacks
             if (event.request.destination === 'document') {
               return caches.match('./index.html');
             }
             
-            // For other resources, return a basic offline response
-            return new Response('Offline', {
+            // For other resources, return empty response
+            return new Response('', {
               status: 200,
               headers: { 'Content-Type': 'text/plain' }
             });
