@@ -1,27 +1,55 @@
 {
   "name": "zephyrus-challenge",
   "version": "1.0.0",
-  "description": "Navigate through the maze and collect data safely to the Zephyrus Hub",
+  "description": "Navigate the maze. Avoid red. Reach the flag. - A mission-critical migration challenge game",
   "main": "index.html",
   "scripts": {
-    "build": "echo 'No build step needed for static files'",
-    "dev": "python -m http.server 8000",
-    "ios:dev": "npx cap run ios",
+    "build": "echo 'Build complete - web files ready'",
+    "ios:prepare": "npx cap add ios && npx cap sync ios",
     "ios:build": "npx cap build ios",
     "ios:open": "npx cap open ios",
-    "capacitor:init": "npx cap init",
-    "capacitor:add-ios": "npx cap add ios",
-    "capacitor:sync": "npx cap sync",
-    "install:capacitor": "npm install @capacitor/core @capacitor/cli @capacitor/ios"
+    "ios:run": "npx cap run ios",
+    "android:prepare": "npx cap add android && npx cap sync android",
+    "android:build": "npx cap build android",
+    "android:open": "npx cap open android",
+    "serve": "npx http-server . -p 8080",
+    "sync": "npx cap sync",
+    "update": "npx cap update"
   },
-  "keywords": ["game", "maze", "zephyrus", "mobile", "pwa"],
-  "author": "Zephyrus Challenge Team",
+  "keywords": [
+    "game",
+    "maze",
+    "challenge",
+    "migration",
+    "zephyrus",
+    "mobile",
+    "ios",
+    "ipad",
+    "pwa"
+  ],
+  "author": "Intelssoft",
   "license": "MIT",
-  "devDependencies": {
-    "@capacitor/cli": "^5.5.1"
-  },
   "dependencies": {
-    "@capacitor/core": "^5.5.1",
-    "@capacitor/ios": "^5.5.1"
+    "@capacitor/core": "^5.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.1",
+    "@capacitor/ios": "^5.5.1",
+    "@capacitor/android": "^5.5.1",
+    "typescript": "^5.2.2",
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intelssoft/zephyrus-challenge"
+  },
+  "homepage": "https://intelssoft.com",
+  "capacitor": {
+    "webDir": "./",
+    "plugins": {
+      "SplashScreen": {
+        "launchShowDuration": 2000
+      }
+    }
   }
 } 
