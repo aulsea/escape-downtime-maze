@@ -486,17 +486,17 @@ class MazeGame {
                 if (this.verifyConnectivityWithObstacles()) {
                     // Safe to place - replace temp with real obstacle
                     this.obstacles.pop();
-                    const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
-                    this.obstacles.push({
-                        x: x * this.cellSize + this.cellSize / 2,
-                        y: y * this.cellSize + this.cellSize / 2,
-                        type: type,
-                        active: true,
-                        animationOffset: Math.random() * Math.PI * 2,
+                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                this.obstacles.push({
+                    x: x * this.cellSize + this.cellSize / 2,
+                    y: y * this.cellSize + this.cellSize / 2,
+                    type: type,
+                    active: true,
+                    animationOffset: Math.random() * Math.PI * 2,
                         gridX: x,
-                        gridY: y
-                    });
-                    obstaclesPlaced++;
+                    gridY: y
+                });
+                obstaclesPlaced++;
                 } else {
                     // Remove temp obstacle - it would block passage
                     this.obstacles.pop();
@@ -512,17 +512,17 @@ class MazeGame {
             
             // Check if this position is already occupied by another item
             if (!this.isPositionOccupied(pathPoint.x, pathPoint.y, 1.5)) {
-                const type = bonusTypes[i % bonusTypes.length];
-                
-                this.bonusItems.push({
-                    x: pathPoint.x * this.cellSize + this.cellSize / 2,
-                    y: pathPoint.y * this.cellSize + this.cellSize / 2,
-                    type: type,
-                    collected: false,
+            const type = bonusTypes[i % bonusTypes.length];
+            
+            this.bonusItems.push({
+                x: pathPoint.x * this.cellSize + this.cellSize / 2,
+                y: pathPoint.y * this.cellSize + this.cellSize / 2,
+                type: type,
+                collected: false,
                     animationOffset: Math.random() * Math.PI * 2,
                     gridX: pathPoint.x, // Store grid coordinates
                     gridY: pathPoint.y
-                });
+            });
             }
         }
     }
@@ -626,7 +626,7 @@ class MazeGame {
         }
         
         // Enhanced collision detection with multiple radius checks
-        const playerRadius = this.playerSize;
+            const playerRadius = this.playerSize;
         
         // Multi-step collision checking for better accuracy
         // Check at multiple points around the player circle
@@ -645,50 +645,50 @@ class MazeGame {
         for (const [checkX, checkY] of checkPoints) {
             const pointCellX = Math.floor(checkX / this.cellSize);
             const pointCellY = Math.floor(checkY / this.cellSize);
-            
+                    
             // Check bounds for this point
             if (pointCellX >= 0 && pointCellX < this.mazeSize && 
                 pointCellY >= 0 && pointCellY < this.mazeSize) {
                 
                 // If any check point is in a wall, return collision
                 if (this.maze[pointCellY][pointCellX] === 1) {
-                    return true;
+                        return true;
+                    }
                 }
             }
-        }
-        
+            
         // Additional refined collision detection for edge cases
-        // Check each nearby cell that could contain a wall
+            // Check each nearby cell that could contain a wall
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const checkCellX = cellX + dx;
                 const checkCellY = cellY + dy;
                 
-                // Skip if outside maze bounds
+                    // Skip if outside maze bounds
                 if (checkCellX < 0 || checkCellX >= this.mazeSize || 
                     checkCellY < 0 || checkCellY >= this.mazeSize) {
                     continue;
                 }
                 
-                // If this is a wall cell, check for collision
+                    // If this is a wall cell, check for collision
                 if (this.maze[checkCellY][checkCellX] === 1) {
                     const wallLeft = checkCellX * this.cellSize;
                     const wallRight = (checkCellX + 1) * this.cellSize;
                     const wallTop = checkCellY * this.cellSize;
                     const wallBottom = (checkCellY + 1) * this.cellSize;
                     
-                    // Check if player circle intersects with wall rectangle
-                    const closestX = Math.max(wallLeft, Math.min(x, wallRight));
-                    const closestY = Math.max(wallTop, Math.min(y, wallBottom));
-                    
-                    const distanceX = x - closestX;
-                    const distanceY = y - closestY;
-                    const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-                    
+                        // Check if player circle intersects with wall rectangle
+                        const closestX = Math.max(wallLeft, Math.min(x, wallRight));
+                        const closestY = Math.max(wallTop, Math.min(y, wallBottom));
+                        
+                        const distanceX = x - closestX;
+                        const distanceY = y - closestY;
+                        const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+                        
                     // Use conservative collision radius to prevent getting stuck
                     const effectiveRadius = playerRadius * 0.8; // Even more conservative
                     if (distanceSquared < (effectiveRadius * effectiveRadius)) {
-                        return true;
+                            return true;
                     }
                 }
             }
@@ -705,8 +705,8 @@ class MazeGame {
         this.animationTime += deltaTime * 0.002;
 
         // Enhanced collision checking with additional safety
-        if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
-            this.pushPlayerOutOfWall();
+                if (this.checkWallCollision(this.playerPos.x, this.playerPos.y)) {
+                        this.pushPlayerOutOfWall();
             return; // Exit early if we had to push out of wall
         }
 
@@ -749,7 +749,7 @@ class MazeGame {
             if (!this.checkWallCollision(newX, newY)) {
                 this.playerPos.x = newX;
                 this.playerPos.y = newY;
-            } else {
+                } else {
                 // If full movement fails, try axis-separated movement
                 const canMoveX = !this.checkWallCollision(newX, this.playerPos.y);
                 const canMoveY = !this.checkWallCollision(this.playerPos.x, newY);
@@ -770,11 +770,11 @@ class MazeGame {
                     for (let scale = 0.5; scale >= 0.1 && !foundValidMove; scale -= 0.1) {
                         const smallMoveX = moveX * scale;
                         const smallMoveY = moveY * scale;
-                        
+                    
                         // Try both axes together first
                         if (!this.checkWallCollision(this.playerPos.x + smallMoveX, this.playerPos.y + smallMoveY)) {
-                            this.playerPos.x += smallMoveX;
-                            this.playerPos.y += smallMoveY;
+                        this.playerPos.x += smallMoveX;
+                        this.playerPos.y += smallMoveY;
                             foundValidMove = true;
                         } 
                         // Try horizontal only
@@ -813,32 +813,32 @@ class MazeGame {
         // Check collisions with obstacles
         this.checkObstacleCollisions();
                 
-        // Add new position to trail with timestamp
-        const currentTime = performance.now();
-        this.trail.push({
-            x: this.playerPos.x,
-            y: this.playerPos.y,
-            timestamp: currentTime
-        });
-        
-        // Remove old trail segments
-        const cutoffTime = currentTime - this.trailDuration;
-        while (this.trail.length > 0 && this.trail[0].timestamp < cutoffTime) {
-            this.trail.shift();
-        }
+                // Add new position to trail with timestamp
+                const currentTime = performance.now();
+                this.trail.push({
+                    x: this.playerPos.x,
+                    y: this.playerPos.y,
+                    timestamp: currentTime
+                });
+                
+                // Remove old trail segments
+                const cutoffTime = currentTime - this.trailDuration;
+                while (this.trail.length > 0 && this.trail[0].timestamp < cutoffTime) {
+                    this.trail.shift();
+                }
 
         // Check for win condition at Zephyrus Hub (center) - only if all bonus items collected
         const allBonusItemsCollected = this.bonusItems.every(item => item.collected);
         if (allBonusItemsCollected) {
-            const distanceToEnd = Math.sqrt(
-                Math.pow(this.playerPos.x - this.endPos.x, 2) + 
-                Math.pow(this.playerPos.y - this.endPos.y, 2)
-            );
-            
+                const distanceToEnd = Math.sqrt(
+                    Math.pow(this.playerPos.x - this.endPos.x, 2) + 
+                    Math.pow(this.playerPos.y - this.endPos.y, 2)
+                );
+                
             if (distanceToEnd < this.cellSize * 0.6) {
-                this.isGameComplete = true;
-                this.canMove = false;
-                this.targetPos = { ...this.playerPos };
+                    this.isGameComplete = true;
+                    this.canMove = false;
+                    this.targetPos = { ...this.playerPos };
                 
                 // Clear game timer since player won
                 if (this.gameTimer) {
@@ -846,8 +846,8 @@ class MazeGame {
                     this.gameTimer = null;
                 }
                 
-                this.showSuccessModal();
-            }
+                    this.showSuccessModal();
+                }
         }
     }
 
@@ -1119,38 +1119,38 @@ class MazeGame {
 
     pushPlayerOutOfWall() {
         // Unified wall escape method for all platforms
-        const cellX = Math.floor(this.playerPos.x / this.cellSize);
-        const cellY = Math.floor(this.playerPos.y / this.cellSize);
-        
+            const cellX = Math.floor(this.playerPos.x / this.cellSize);
+            const cellY = Math.floor(this.playerPos.y / this.cellSize);
+            
         // Strategy 1: Try to move to nearest open cell center (closest safe position)
         const directions = [
             [0, 0],   // Current cell center
             [0, 1], [1, 0], [0, -1], [-1, 0],  // Adjacent cells
             [1, 1], [-1, -1], [1, -1], [-1, 1] // Diagonal cells
         ];
-        
-        for (const [dx, dy] of directions) {
-            const testCellX = cellX + dx;
-            const testCellY = cellY + dy;
             
-            // Check if this cell is valid and open
-            if (testCellX >= 1 && testCellX < this.mazeSize - 1 &&
-                testCellY >= 1 && testCellY < this.mazeSize - 1 &&
-                this.maze[testCellY][testCellX] === 0) {
+            for (const [dx, dy] of directions) {
+                const testCellX = cellX + dx;
+                const testCellY = cellY + dy;
                 
-                const newX = (testCellX + 0.5) * this.cellSize;
-                const newY = (testCellY + 0.5) * this.cellSize;
-                
-                // Verify this position is actually safe
-                if (!this.checkWallCollision(newX, newY)) {
-                    this.playerPos.x = newX;
-                    this.playerPos.y = newY;
-                    this.targetPos = { ...this.playerPos };
-                    return;
+                // Check if this cell is valid and open
+                if (testCellX >= 1 && testCellX < this.mazeSize - 1 &&
+                    testCellY >= 1 && testCellY < this.mazeSize - 1 &&
+                    this.maze[testCellY][testCellX] === 0) {
+                    
+                    const newX = (testCellX + 0.5) * this.cellSize;
+                    const newY = (testCellY + 0.5) * this.cellSize;
+                    
+                    // Verify this position is actually safe
+                    if (!this.checkWallCollision(newX, newY)) {
+                        this.playerPos.x = newX;
+                        this.playerPos.y = newY;
+                        this.targetPos = { ...this.playerPos };
+                        return;
+                    }
                 }
             }
-        }
-        
+            
         // Strategy 2: If cell center approach fails, try radial search for nearest safe position
         const searchRadius = this.cellSize * 2;
         const step = 4; // Reasonable step size for searching
@@ -1159,44 +1159,44 @@ class MazeGame {
             for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
                 const testX = this.playerPos.x + Math.cos(angle) * radius;
                 const testY = this.playerPos.y + Math.sin(angle) * radius;
-                
+                    
                 // Make sure the position is within bounds
-                const minBound = this.cellSize + this.playerSize;
-                const maxBound = (this.mazeSize - 1) * this.cellSize - this.playerSize;
-                
-                if (testX >= minBound && testX <= maxBound &&
-                    testY >= minBound && testY <= maxBound) {
+                    const minBound = this.cellSize + this.playerSize;
+                    const maxBound = (this.mazeSize - 1) * this.cellSize - this.playerSize;
                     
-                    if (!this.checkWallCollision(testX, testY)) {
+                    if (testX >= minBound && testX <= maxBound && 
+                        testY >= minBound && testY <= maxBound) {
+                        
+                        if (!this.checkWallCollision(testX, testY)) {
                         // Found a valid position, move player there
-                        this.playerPos.x = testX;
-                        this.playerPos.y = testY;
-                        this.targetPos = { ...this.playerPos };
-                        return;
+                            this.playerPos.x = testX;
+                            this.playerPos.y = testY;
+                            this.targetPos = { ...this.playerPos };
+                            return;
+                        }
                     }
                 }
             }
-        }
-        
+            
         // Strategy 3: Emergency fallback - scan for any open cell systematically
-        for (let y = 1; y < this.mazeSize - 1; y++) {
-            for (let x = 1; x < this.mazeSize - 1; x++) {
-                if (this.maze[y][x] === 0) {
-                    const testX = (x + 0.5) * this.cellSize;
-                    const testY = (y + 0.5) * this.cellSize;
-                    
-                    if (!this.checkWallCollision(testX, testY)) {
-                        this.playerPos.x = testX;
-                        this.playerPos.y = testY;
-                        this.targetPos = { ...this.playerPos };
-                        return;
+            for (let y = 1; y < this.mazeSize - 1; y++) {
+                for (let x = 1; x < this.mazeSize - 1; x++) {
+                    if (this.maze[y][x] === 0) {
+                        const testX = (x + 0.5) * this.cellSize;
+                        const testY = (y + 0.5) * this.cellSize;
+                        
+                        if (!this.checkWallCollision(testX, testY)) {
+                            this.playerPos.x = testX;
+                            this.playerPos.y = testY;
+                            this.targetPos = { ...this.playerPos };
+                            return;
+                        }
                     }
                 }
             }
-        }
-        
+            
         // Strategy 4: Absolute last resort - reset to start position
-        this.resetPlayerPosition();
+            this.resetPlayerPosition();
     }
 
     setupControls() {
@@ -1254,7 +1254,7 @@ class MazeGame {
             targetY = Math.max(minBound, Math.min(targetY, maxBound));
             
             // Enhanced collision checking before setting target
-            if (!this.checkWallCollision(targetX, targetY)) {
+                    if (!this.checkWallCollision(targetX, targetY)) {
                 // Additional safety check - verify the target is in an open cell
                 const targetCellX = Math.floor(targetX / this.cellSize);
                 const targetCellY = Math.floor(targetY / this.cellSize);
@@ -1263,7 +1263,7 @@ class MazeGame {
                     targetCellY >= 1 && targetCellY < this.mazeSize - 1 &&
                     this.maze[targetCellY][targetCellX] === 0) {
                     
-                    this.targetPos = { x: targetX, y: targetY };
+                        this.targetPos = { x: targetX, y: targetY };
                 } else {
                     // Target cell is not safe, try to find a nearby safe position
                     this.findNearestSafeTarget(targetX, targetY);
@@ -1337,11 +1337,12 @@ class MazeGame {
         // Start 45-second game timer
         this.gameTimer = setTimeout(() => {
             if (!this.isGameComplete && !this.isGameOver) {
-                // Time's up - trigger game over
-                this.isGameOver = true;
+                // Time's up - restart game with welcome modal
+                this.isGameOver = false;
                 this.canMove = false;
-                this.targetPos = { ...this.playerPos };
-                this.drawGameOverScreen();
+                this.hideModals();
+                this.restart();
+                this.showWelcomeModal();
             }
         }, 45000); // 45 seconds
         
